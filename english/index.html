@@ -1248,7 +1248,7 @@ Object.entries(CERT_QUESTIONS).forEach(([level,questions])=>questions.forEach((q
   const esc=s=>escapeHtml(String(s||''));
   const shuffle=list=>{const a=[...list];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
   const valid=w=>w&&/[a-z]/i.test(w.word||'')&&/[\u3400-\u9fff]/.test(w.meaning||'')&&!/待补|暂无|未提供/.test(w.meaning);
-  const senses=s=>String(s||'').replace(/（[^）]*）|\([^)]*\)/g,'').split(/[；;、，,/]/).map(norm).filter(x=>x.length>1);
+  const senses=s=>String(s||'').replace(/（[^）]*）|\([^)]*\)/g,'').split(/[；;、，,/]/).map(norm).filter(Boolean);
   const pos=w=>norm(w.partOfSpeech).replace(/\./g,'');
   function round(w,kind='en-zh',bank=[]){
     if(!valid(w))return null;
@@ -1258,7 +1258,12 @@ Object.entries(CERT_QUESTIONS).forEach(([level,questions])=>questions.forEach((q
       seen.add(key);return true;
     });
     const ranked=shuffle(pool).map(x=>({x,score:(pos(w)&&pos(x)===pos(w)?8:0)+(x.topic===w.topic?3:0)+(norm(x.word).includes(' ')===phrase?2:0)})).sort((a,b)=>b.score-a.score);
-    const pairs=shuffle([w,...ranked.slice(0,3).map(x=>x.x)]);
+    const selected=[w],usedSenses=new Set(meanings),usedMeanings=new Set([norm(w.meaning)]);
+    for(const {x} of ranked){
+      const parts=senses(x.meaning);if(usedMeanings.has(norm(x.meaning))||parts.some(s=>usedSenses.has(s)))continue;
+      selected.push(x);usedMeanings.add(norm(x.meaning));parts.forEach(s=>usedSenses.add(s));if(selected.length===4)break;
+    }
+    const pairs=shuffle(selected);
     const direction=['zh-en','listen'].includes(kind)?'zh-en':'en-zh';
     return {kind,direction,pairs,prompt:kind==='listen'?'听发音，认出这个词':kind==='context'&&w.example?w.example:direction==='en-zh'?w.word:w.meaning,
       answer:direction==='en-zh'?w.meaning:w.word,options:pairs.map(x=>direction==='en-zh'?x.meaning:x.word),
