@@ -1,0 +1,46 @@
+name: Deploy learning sites
+on:
+  push:
+    branches: [main]
+    paths: ['english/**', 'tax/**', 'release.json', '.github/workflows/learning-pages.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: learning-pages
+  cancel-in-progress: true
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify release and prepare public files
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib,json,shutil
+          manifest=json.loads(Path('release.json').read_text())
+          root=Path('_site');root.mkdir()
+          for name,expected in manifest['files'].items():
+              source=Path(name)
+              assert name in ['english/index.html','tax/index.html'], name
+              assert hashlib.sha256(source.read_bytes()).hexdigest()==expected, name
+              target=root/name;target.parent.mkdir(parents=True,exist_ok=True)
+              shutil.copyfile(source,target)
+          (root/'index.html').write_text('<!doctype html><meta charset="utf-8"><a href="./english/">英语学习</a><script>location.replace("./english/")</script>')
+          (root/'.nojekyll').touch()
+          PY
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
