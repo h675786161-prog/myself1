@@ -412,6 +412,21 @@ body.keyboardOpen #assistantApiHost{max-height:min(52dvh,360px);overflow:auto;ov
 
 </style>
 <!-- END issues.css -->
+<!-- BEGIN study-ui.css -->
+<style>
+/* Comfortable study controls and a searchable full vocabulary shelf. */
+.certHero{padding:12px 16px;margin-bottom:10px}.certHero h2{font-size:20px;margin:5px 0}.certHero p{margin:4px 0 8px;font-size:13px}.certMetrics{gap:6px}
+.vocabHead{flex-wrap:wrap;gap:10px}.vocabHead>div:first-child{flex:1;min-width:180px}.vocabHead h3{margin:0}.vocabHead p{margin:5px 0!important;font-size:13px!important;line-height:1.5!important}.vocabHead .btn{min-height:44px;font-size:14px}
+.vocabAITools{position:relative}.vocabAITools summary{cursor:pointer;border:1px solid #e7dfee;border-radius:12px;background:#f6f1fa;padding:11px;font-size:14px;min-height:44px;box-sizing:border-box}.vocabAITools>div{position:absolute;right:0;top:calc(100% + 6px);z-index:12;background:#fff;border:1px solid #e7dfee;border-radius:14px;padding:9px;box-shadow:0 10px 28px #59406b24;min-width:220px;display:grid;gap:8px}
+.vocabModeChip{font-size:14px;min-height:44px}.vocabFilterRow{flex-wrap:wrap;gap:8px}.vocabFilterRow select{font-size:14px;min-height:44px}.vocabPoolCount{font-size:13px}.vocabFlowMiniTools .btn{font-size:13px;min-height:44px}.vocabFlowStage{font-size:13px}.vocabFlowSub{font-size:14px!important}.vocabFlowReveal small{font-size:13px}.vocabFlowReveal p{font-size:15px!important}
+.vocabBrowser{padding:14px;margin:12px 0 16px;background:#f8f4fc;border:1px solid #e6dceb;border-radius:16px}.vocabBrowserHead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}.vocabBrowserHead label{font-size:15px;font-weight:700}.vocabBrowserHead .btn{min-height:40px;padding:8px 13px;font-size:14px}
+.vocabSearchRow{display:flex;gap:8px}.vocabSearchRow input,.vocabSearchRow select{font:inherit;font-size:14px;border:1px solid #dcd0e5;border-radius:11px;padding:11px;background:#fff;min-height:44px;color:var(--ink)}.vocabSearchRow input{flex:1;min-width:0}.vocabSearchRow select{max-width:145px}
+#vocabSearchCount{font-size:13px;line-height:1.5;color:var(--muted);margin:9px 0}.vocabBrowser .certList{max-height:320px;overscroll-behavior:contain;gap:8px}.vocabBrowser #vocabResults{display:grid;gap:8px}.vocabBrowser [data-vocab]{display:grid;grid-template-columns:minmax(110px,1fr) 1.3fr;gap:12px;align-items:center;width:100%;font:14px/1.5 system-ui;padding:11px;background:#fff}.vocabBrowser [data-vocab] b{font-size:16px;overflow-wrap:anywhere}.vocabBrowser [data-vocab] small{display:block;font-size:12px;color:var(--muted);margin-top:2px}.vocabSearchEmpty{font-size:14px!important;line-height:1.65!important;padding:9px}
+.vocabBrowser button:focus-visible,.vocabSearchRow input:focus-visible,.vocabSearchRow select:focus-visible,.vocabModeChip:focus-visible,.coachDetails summary:focus-visible{outline:3px solid #a68bd0;outline-offset:2px}#vocabContent:focus{outline:none}
+@media(max-width:520px){.vocabBrowser{padding:11px}.vocabSearchRow{flex-direction:column}.vocabSearchRow select{max-width:none;width:100%}.vocabHead>div:first-child{flex-basis:100%}.vocabAITools{margin-left:auto}.vocabBrowser [data-vocab]{grid-template-columns:1fr;gap:4px}.vocabModeTabs{grid-template-columns:repeat(4,1fr)}.vocabModeChip{padding:10px 3px;font-size:13px}}
+
+</style>
+<!-- END study-ui.css -->
 </head>
 <body>
 <div class="wrap">
@@ -2731,7 +2746,13 @@ setTimeout(()=>{const cfg=loadSyncCfg();if(cfg.code&&cfg.enabled!==false&&cfg.au
   if(!['flow','memory','card','spell'].includes(vocabMode))vocabMode='flow';
   let vocabFlowKind='',vocabFlowCombo=0,vocabFlowLocked=false,vocabFlowTimer=null;
   let mockIndex=0, mockTimer=null, certController=null, certRequest=0, certHistory=[];
-  let vocabAdvance=0;
+  let vocabAdvance=0,vocabLevel=null,pendingResume=null,browserTimer=null;
+  const CURSOR_KEY='lazyEnglishVocabCursor';
+  function savedWord(l){try{return JSON.parse(localStorage.getItem(CURSOR_KEY)||'{}')[l]?.id||null;}catch{return null;}}
+  function rememberWord(){
+    if(!vocabId)return;
+    try{const box=JSON.parse(localStorage.getItem(CURSOR_KEY)||'{}');box[level()]={id:vocabId};localStorage.setItem(CURSOR_KEY,JSON.stringify(box));}catch{}
+  }
   const el=id=>document.getElementById(id);
   const levels=['B1','B2','C1','C2'];
   const level=()=>levels.includes(getGoal())?getGoal():'C1';
@@ -2796,7 +2817,7 @@ setTimeout(()=>{const cfg=loadSyncCfg();if(cfg.code&&cfg.enabled!==false&&cfg.au
     const candidates=others.length?others:pool;
     const p=progress(),weighted=candidates.flatMap(w=>Array(p.review[w.id]?4:p.learned[w.id]?1:2).fill(w));
     vocabId=weighted.length?weighted[Math.floor(Math.random()*weighted.length)].id:null;
-    vocabRevealed=false;clearCertAI();renderVocab();
+    pendingResume=null;rememberWord();vocabRevealed=false;clearCertAI();renderVocab();
   }
   function flowShuffle(items){
     const copy=[...items];
@@ -2918,30 +2939,67 @@ setTimeout(()=>{const cfg=loadSyncCfg();if(cfg.code&&cfg.enabled!==false&&cfg.au
     card.style.opacity='0';
     setTimeout(next,245);
   }
+  function openVocabBrowser(){
+    const box=el('vocabBrowser'),toggle=el('vocabListToggle');
+    box.hidden=!box.hidden;toggle.setAttribute('aria-expanded',String(!box.hidden));
+    if(box.hidden)return;
+    const input=el('vocabSearch'),kind=el('vocabKind'),results=el('vocabResults'),more=el('vocabListMore');
+    let matches=[],shown=0;
+    const normal=value=>String(value||'').normalize('NFKC').toLowerCase().trim();
+    const close=()=>{clearTimeout(browserTimer);box.hidden=true;toggle.setAttribute('aria-expanded','false');toggle.focus();};
+    const append=()=>{
+      const p=progress(),batch=matches.slice(shown,shown+60);shown+=batch.length;
+      results.insertAdjacentHTML('beforeend',batch.map(x=>'<button type="button" data-vocab="'+escapeHtml(x.id)+'"><span><b>'+escapeHtml(x.word)+'</b><small>'+escapeHtml(x.topic||'')+(p.learned[x.id]?' · 已熟悉':'')+(p.review[x.id]?' · 待复习':'')+'</small></span><span>'+escapeHtml(x.meaning)+'</span></button>').join(''));
+      el('vocabSearchCount').textContent='找到 '+matches.length.toLocaleString()+' 个 · 已显示 '+shown;
+      more.textContent='再显示 60 个';more.hidden=shown>=matches.length;
+    };
+    const search=()=>{
+      const query=normal(input.value),type=kind.value;
+      matches=vocabPool().filter(w=>{
+        const phrase=String(w.word||'').trim().split(/\s+/).length>1;
+        return (type==='all'||(type==='phrase'?phrase:!phrase))&&(!query||[w.word,w.meaning,w.example,w.chunk].some(v=>normal(v).includes(query)));
+      });
+      if(query)matches.sort((a,b)=>{
+        const rank=w=>normal(w.word)===query?0:normal(w.word).startsWith(query)?1:normal(w.word).includes(query)?2:3;
+        return rank(a)-rank(b);
+      });
+      shown=0;results.replaceChildren();append();
+      if(!matches.length)results.innerHTML='<p class="vocabSearchEmpty">没有找到。试试词的一部分、中文意思，或切换词库范围。</p>';
+    };
+    input.oninput=e=>{if(e.isComposing)return;clearTimeout(browserTimer);browserTimer=setTimeout(search,120);};
+    input.oncompositionend=search;kind.onchange=search;more.onclick=append;el('vocabBrowserClose').onclick=close;
+    box.onkeydown=e=>{
+      if(e.key==='Escape'){e.preventDefault();close();}
+      if(e.target===input&&e.key==='Enter'&&!e.isComposing){e.preventDefault();search();results.querySelector('[data-vocab]')?.click();}
+    };
+    results.onclick=e=>{
+      const button=e.target.closest('[data-vocab]');if(!button)return;
+      vocabId=button.dataset.vocab;pendingResume=null;rememberWord();vocabRevealed=false;vocabFlowKind='';clearCertAI();renderVocab();
+      const content=el('vocabContent');content.focus({preventScroll:true});content.scrollIntoView({behavior:'smooth',block:'nearest'});
+    };
+    search();input.focus({preventScroll:true});box.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }
   function renderVocab(){
     try{
     window.englishMemory?.close();clearTimeout(vocabFlowTimer);vocabFlowTimer=null;vocabFlowLocked=false;
-    const p=progress(),pool=vocabPool();
+    clearTimeout(browserTimer);
+    const l=level(),p=progress(),pool=vocabPool();
+    if(vocabLevel!==l){vocabLevel=l;vocabId=null;pendingResume=savedWord(l);vocabFlowKind='';}
+    if(pendingResume&&pool.some(w=>w.id===pendingResume)){vocabId=pendingResume;pendingResume=null;}
+    else if(pendingResume&&window.englishFullVocab?.loaded?.(l))pendingResume=null;
     if(!pool.some(w=>w.id===vocabId))vocabId=pool[0]?.id||null;
+    if(!pendingResume&&(window.englishFullVocab?.loaded?.(l)||CERT_VOCAB[l].length>100))rememberWord();
     const w=activeVocab();
     const modes=[['flow','🌊 词流'],['memory','✍ 四遍'],['card','🃏 卡片'],['spell','⌨ 拼写']];
-    el('certBody').innerHTML='<div class="certCard vocabCard"><div class="vocabHead"><div><h3>考证词库</h3><p class="small">不想一直写就用词流：认、听、选、塞回句子，穿插着来。</p></div><button class="btn" id="vocabListToggle">浏览词库</button></div><div class="vocabModeTabs">'+modes.map(([value,label])=>'<button class="vocabModeChip '+(vocabMode===value?'active':'')+'" data-vocab-mode="'+value+'">'+label+'</button>').join('')+'</div><select id="vocabMode" class="vocabModeSelect" aria-label="词汇训练方式"><option value="flow">词流</option><option value="memory">四遍记忆</option><option value="card">词块卡片</option><option value="spell">看中文写英文</option></select><div class="vocabFilterRow"><select id="vocabFilter" aria-label="词库范围"><option value="all">全部词库</option><option value="new">还没熟悉</option><option value="review">待复习</option></select><span class="vocabPoolCount">'+pool.length+' 个可练</span></div><div id="vocabContent"></div><div class="certList" id="vocabList" hidden></div></div>';
+    el('certBody').innerHTML='<div class="certCard vocabCard"><div class="vocabHead"><div><h3>考证词库</h3><p class="small">不想一直写就用词流：认、听、选、塞回句子，穿插着来。</p></div><button class="btn" id="vocabListToggle" aria-expanded="false" aria-controls="vocabBrowser">找词 / 浏览</button></div><div class="vocabModeTabs">'+modes.map(([value,label])=>'<button class="vocabModeChip '+(vocabMode===value?'active':'')+'" data-vocab-mode="'+value+'">'+label+'</button>').join('')+'</div><select id="vocabMode" class="vocabModeSelect" aria-label="词汇训练方式"><option value="flow">词流</option><option value="memory">四遍记忆</option><option value="card">词块卡片</option><option value="spell">看中文写英文</option></select><div class="vocabFilterRow"><select id="vocabFilter" aria-label="词库范围"><option value="all">全部词库</option><option value="new">还没熟悉</option><option value="review">待复习</option></select><span class="vocabPoolCount">'+pool.length+' 个可练</span></div><section class="vocabBrowser" id="vocabBrowser" hidden aria-label="查找词库"><div class="vocabBrowserHead"><label for="vocabSearch">找一个想练的词</label><button type="button" class="btn" id="vocabBrowserClose">收起</button></div><div class="vocabSearchRow"><input type="search" id="vocabSearch" placeholder="英文、中文意思、词块或例句" autocomplete="off" autocapitalize="off" spellcheck="false"><select id="vocabKind" aria-label="查找内容类型"><option value="all">词和词块</option><option value="word">单词</option><option value="phrase">短语 / 词块</option></select></div><div id="vocabSearchCount" role="status" aria-live="polite"></div><div class="certList" id="vocabList"><div id="vocabResults"></div><button type="button" class="btn" id="vocabListMore"></button></div></section><div id="vocabContent" tabindex="-1"></div></div>';
     el('vocabFilter').value=vocabFilter;el('vocabMode').value=vocabMode;
-    const generate=document.createElement('button');generate.className='btn';generate.id='vocabGenerate';generate.textContent='✨ AI 出题 / 新词';el('vocabListToggle').before(generate);generate.onclick=()=>window.englishTutor.open('current');
+    const generate=document.createElement('button');generate.className='btn';generate.id='vocabGenerate';generate.textContent='✨ AI 出题 / 新词';const ai=document.createElement('details');ai.className='vocabAITools';ai.innerHTML='<summary>AI 帮我</summary><div></div>';el('vocabListToggle').before(ai);ai.querySelector('div').append(generate);generate.onclick=()=>window.englishTutor.open('current');
     const audit=document.createElement('button');audit.className='btn';audit.id='vocabAudit';audit.textContent='AI 检查释义 / 例句';generate.after(audit);audit.onclick=()=>{const entry=activeVocab();if(!entry)return;window.englishAssistant.ask('请审核这张词卡的英文、中文释义、词块搭配、例句和翻译是否准确自然。逐项说“可以保留”或给出具体改法，区分错误与风格差异；若有疑点明确说明，不要臆造词典来源。最后用修正后的搭配给一道不提前泄露答案的小练习。词卡数据：'+JSON.stringify(entry));};
     el('vocabFilter').onchange=e=>{vocabFilter=e.target.value;vocabId=null;chooseWord();};
     const setMode=next=>{vocabMode=next;localStorage.setItem('lazyEnglishVocabMode',vocabMode);vocabRevealed=false;vocabFlowKind='';clearCertAI();renderVocab();};
     el('vocabMode').onchange=e=>setMode(e.target.value);
     document.querySelectorAll('.vocabModeChip').forEach(b=>b.onclick=()=>setMode(b.dataset.vocabMode));
-    el('vocabListToggle').onclick=()=>{
-      const list=el('vocabList');list.hidden=!list.hidden;if(list.hidden)return;
-      list.replaceChildren();let shown=0;
-      const more=document.createElement('button');more.type='button';more.className='btn';more.id='vocabListMore';list.append(more);
-      const append=()=>{const batch=pool.slice(shown,shown+100);shown+=batch.length;
-        more.insertAdjacentHTML('beforebegin',batch.map(x=>'<button data-vocab="'+escapeHtml(x.id)+'"><b>'+escapeHtml(x.word)+'</b> · '+escapeHtml(x.meaning)+(p.learned[x.id]?' ✓':'')+(p.review[x.id]?' · 待复习':'')+'</button>').join(''));
-        more.textContent='继续浏览 · '+shown+' / '+pool.length;more.hidden=shown>=pool.length;};
-      more.onclick=append;list.onclick=e=>{const b=e.target.closest('[data-vocab]');if(!b)return;vocabId=b.dataset.vocab;vocabRevealed=false;vocabFlowKind='';clearCertAI();renderVocab();};append();
-    };
+    el('vocabListToggle').onclick=openVocabBrowser;
     if(!w){el('vocabContent').innerHTML='<p>这一组已经清空了 ✓ 可以切回全部词库继续练。</p>';return;}
     const position=CERT_VOCAB[level()].indexOf(w)+1;
     const spell=vocabMode==='spell',memory=vocabMode==='memory',flow=vocabMode==='flow';
@@ -3016,7 +3074,7 @@ setTimeout(()=>{const cfg=loadSyncCfg();if(cfg.code&&cfg.enabled!==false&&cfg.au
       el('vocabReveal').onclick=()=>revealWrong(null,true);
       el('vocabSpeak').onclick=()=>window.englishSpeech.speakParts([w.word,w.example],{kind:'vocab'});
       el('vocabReview').onclick=()=>revealWrong(null,true);
-      const l=level(),memoryOptions={scope:'vocab:'+l,level:l,title:CERT_INFO[l].name+' 词库',items:[{id:w.id+':word',text:w.word,meaning:w.meaning,label:'词 / 词块'},{id:w.id+':example',text:w.example,meaning:w.translation,label:'例句'}],onReview:()=>{const data=progress(l);data.review[w.id]=true;delete data.learned[w.id];changed();}};
+      const memoryOptions={scope:'vocab:'+l,level:l,title:CERT_INFO[l].name+' 词库',items:[{id:w.id+':word',text:w.word,meaning:w.meaning,label:'词 / 词块'},{id:w.id+':example',text:w.example,meaning:w.translation,label:'例句'}],onReview:()=>{const data=progress(l);data.review[w.id]=true;delete data.learned[w.id];changed();}};
       el('vocabMemory').onclick=()=>window.englishMemory.open(memoryOptions);
       return;
     }
@@ -3027,7 +3085,7 @@ setTimeout(()=>{const cfg=loadSyncCfg();if(cfg.code&&cfg.enabled!==false&&cfg.au
     if(!spell&&!memory){document.querySelector('.vocabTerm').innerHTML=lookupTerm(w.word);bindWordTaps(document.querySelector('.vocabTerm'),w.example);el('vocabExample').innerHTML=tokenizeClickable(w.example);bindWordTaps(el('vocabExample'),w.example);}
     el('vocabReveal').onclick=()=>{vocabRevealed=!vocabRevealed;el('vocabMeaning').hidden=!vocabRevealed;};
     el('vocabSpeak').onclick=()=>window.englishSpeech.speakParts([w.word,w.example],{kind:'vocab'});
-    const l=level(),memoryOptions={scope:'vocab:'+l,level:l,title:CERT_INFO[l].name+' 词库',items:[{id:w.id+':word',text:w.word,meaning:w.meaning,label:'词 / 词块'},{id:w.id+':example',text:w.example,meaning:w.translation,label:'例句'}],onClose:()=>{const button=el('vocabMemory');if(button)button.hidden=false;},onReview:()=>{const data=progress(l);data.review[w.id]=true;delete data.learned[w.id];changed();}};
+    const memoryOptions={scope:'vocab:'+l,level:l,title:CERT_INFO[l].name+' 词库',items:[{id:w.id+':word',text:w.word,meaning:w.meaning,label:'词 / 词块'},{id:w.id+':example',text:w.example,meaning:w.translation,label:'例句'}],onClose:()=>{const button=el('vocabMemory');if(button)button.hidden=false;},onReview:()=>{const data=progress(l);data.review[w.id]=true;delete data.learned[w.id];changed();}};
     const expandMemory=()=>{window.englishMemory.mount(memoryOptions,el('vocabMemoryInline'));el('vocabMemory').hidden=true;};
     el('vocabMemory').onclick=()=>memory?expandMemory():window.englishMemory.open(memoryOptions);
     if(memory)el('vocabMemory').textContent='✍ 展开 / 接着练四遍';
@@ -3218,7 +3276,7 @@ setTimeout(()=>{const cfg=loadSyncCfg();if(cfg.code&&cfg.enabled!==false&&cfg.au
   el('certificateSelect').onchange=e=>setGoal(e.target.value);
   document.querySelectorAll('#learningTabs [data-view]').forEach(b=>b.onclick=()=>show(b.dataset.view));
   window.certificateUI={
-    selectGoal:()=>{vocabId=null;vocabFlowKind='';mockIndex=0;show('vocab');},
+    selectGoal:()=>{vocabId=null;vocabLevel=null;vocabFlowKind='';mockIndex=0;show('vocab');},
     refresh:()=>{show(view,false);},
     currentView:()=>view,
     currentWord:()=>view==='vocab'?activeVocab():null,
@@ -4103,6 +4161,8 @@ setTimeout(()=>{const cfg=loadSyncCfg();if(cfg.code&&cfg.enabled!==false&&cfg.au
     box.querySelector('[data-coach-dictation]')?.addEventListener('click',()=>{openVocab();setTimeout(()=>window.englishSmartPractice?.openDictation?.(),80);});
     box.querySelector('[data-coach-plan]')?.addEventListener('click',openGoalPlanner);
     box.querySelector('[data-coach-refresh]')?.addEventListener('click',()=>render(true));
+    const details=box.querySelector('.coachDetails');
+    if(details)details.ontoggle=()=>localStorage.setItem('lazyEnglishCoachExpanded',details.open?'1':'0');
   }
   function render(force=false){
     const box=install();if(!box)return;
@@ -4112,19 +4172,16 @@ setTimeout(()=>{const cfg=loadSyncCfg();if(cfg.code&&cfg.enabled!==false&&cfg.au
     const weak=r.weak.length?'最近最该收拾：'+r.weak.join(' · '):'暂时没有形成明显的顽固错词。';
     const signature=[s.level,s.total,s.known,s.due,s.today,r.left,r.plan.registered,modeKey,r.weak.join('|'),window.englishFullVocab?.loaded?.(s.level)].join(':');
     if(!force&&box.dataset.signature===signature)return;box.dataset.signature=signature;
+    const expanded=box.querySelector('.coachDetails')?.open??(localStorage.getItem('lazyEnglishCoachExpanded')==='1');
     box.innerHTML=`
-      <div class="coachHead"><div><b>🧭 今天七来带路</b><span>${esc(s.level)} · ${esc(exam)}</span></div><button type="button" class="coachGhost" data-coach-refresh>↻</button></div>
-      <div class="coachSummary">
-        <div><strong>${s.total.toLocaleString()}</strong><span>当前词库</span></div>
-        <div><strong>${s.due}</strong><span>待复习</span></div>
-        <div><strong>${coverage}%</strong><span>已熟悉</span></div>
-        <div><strong>${s.today}</strong><span>今天记录</span></div>
-      </div>
+      <div class="coachHead"><div><b>🧭 七的学习教练</b><span>${esc(s.level)} · ${esc(exam)}</span></div><button type="button" class="coachGhost" data-coach-refresh aria-label="刷新今日学习路线">↻</button></div>
+      <div class="coachCompact"><p><strong>${s.total.toLocaleString()} 个词 / 词块</strong><span>待复习 ${s.due} · 已熟悉 ${coverage}% · 今天 ${s.today} 项</span></p><button type="button" class="btn primary" data-coach-start>开始 10 分钟</button></div>
+      <details class="coachDetails" ${expanded?'open':''}><summary>今日路线 / 学习强度 <span>${esc(r.mode.label)}</span></summary>
       <div class="coachIntensity"><span>今天强度</span>${Object.entries(INTENSITY).map(([k,v])=>`<button type="button" data-intensity="${k}" class="${k===modeKey?'active':''}">${esc(v.label)}</button>`).join('')}</div>
       <p class="coachNote">${esc(r.mode.note)} ${esc(weak)}</p>
       <div class="coachRoute">${r.steps.map((x,i)=>`<div class="coachStep"><i>${i+1}</i><span>${x.icon}</span><div><b>${esc(x.title)}</b><small>${esc(x.sub)}</small></div></div>`).join('')}</div>
-      <div class="coachActions"><button type="button" class="btn primary" data-coach-start>▶ 一键开始 10 分钟</button><button type="button" class="btn" data-coach-dictation>🎧 直接听写</button>${r.plan.targetDate?'':'<button type="button" class="btn" data-coach-plan>📅 先定考试日</button>'}</div>
-      <div class="coachFoot">${s.fullReady?'完整词库已接入今日规划。':'完整词库在后台补全，页面先照常能用，加载失败也不会堵门。'}</div>`;
+      <div class="coachActions"><button type="button" class="btn" data-coach-dictation>🎧 直接听写</button><button type="button" class="btn" data-coach-plan>${r.plan.targetDate?'📅 调整考试计划':'📅 先定考试日'}</button></div>
+      <div class="coachFoot">${s.fullReady?'完整词库已接入今日规划。':'词库正在补全，先练当前内容。'}</div></details>`;
     bind(box,s,r);
   }
 
@@ -4135,6 +4192,8 @@ setTimeout(()=>{const cfg=loadSyncCfg();if(cfg.code&&cfg.enabled!==false&&cfg.au
     .coachIntensity{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.coachIntensity>span{font-size:11px;color:var(--muted);margin-right:2px}.coachIntensity button{border:1px solid #e6dced;background:#fff;color:#6c5878;border-radius:999px;padding:7px 9px;font:inherit;font-size:11px}.coachIntensity button.active{background:#765a92;color:#fff;border-color:#765a92}.coachNote{font-size:11px!important;line-height:1.55!important;color:#74677d;margin:9px 0!important}
     .coachRoute{display:grid;gap:7px}.coachStep{display:grid;grid-template-columns:25px 24px 1fr;align-items:center;gap:7px;background:rgba(255,255,255,.72);border:1px solid #eee7f4;border-radius:13px;padding:8px}.coachStep i{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:#eee5f7;color:#6b5182;font:700 11px system-ui;font-style:normal}.coachStep>span{font-size:18px}.coachStep b{display:block;font-size:12px}.coachStep small{display:block;color:var(--muted);font-size:10px;line-height:1.4;margin-top:2px}
     .coachActions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.coachActions .btn{min-height:40px;padding:8px 10px;font-size:11px;flex:1;min-width:120px}.coachFoot{font-size:10px;color:#8a7d91;margin-top:8px}
+    .coachHead span{font-size:13px}.coachGhost{width:40px;height:40px}.coachCompact{display:flex;align-items:center;gap:14px;margin:8px 0}.coachCompact p{margin:0!important;flex:1;line-height:1.6!important;font-size:14px!important}.coachCompact strong,.coachCompact span{display:block}.coachCompact span{color:var(--muted);font-size:13px}.coachCompact .btn{font-size:14px;min-height:44px;white-space:nowrap}
+    .coachDetails{border-top:1px solid #eadff2;margin-top:10px}.coachDetails summary{cursor:pointer;min-height:42px;padding:10px 0;font-size:14px;color:#675078}.coachDetails summary>span{float:right;color:var(--muted);font-size:13px}.coachDetails .coachIntensity{margin-top:7px}.coachIntensity button{font-size:14px;min-height:40px}.coachIntensity>span{font-size:14px}.coachNote{font-size:14px!important}.coachStep b{font-size:14px}.coachStep small{font-size:13px;line-height:1.6}.coachActions .btn{font-size:14px;min-height:44px}.coachFoot{font-size:12px}
     @media(max-width:520px){.coachSummary{grid-template-columns:1fr 1fr}.coachActions .btn{min-width:45%}}
   `;document.head.append(style);
 
@@ -4152,5 +4211,4 @@ setTimeout(()=>{const cfg=loadSyncCfg();if(cfg.code&&cfg.enabled!==false&&cfg.au
 <!-- END learning-coach.js -->
 </body>
 </html>
-
 
