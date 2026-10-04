@@ -151,7 +151,7 @@ function selectedModel(){return els.model.value||els.model.dataset.saved||'';}
 function chooseModel(value){if(!value)return;if(![...els.model.options].some(o=>o.value===value))els.model.add(new Option(value,value));els.model.value=value;els.model.dataset.saved=value;$('manualModel').value=value;}
 function settingsValues(){return {apiBase:normalizeBase(els.apiBase.value),apiKey:els.apiKey.value.trim(),imagePath:normalizePath(els.imagePath.value,'/images/generations'),editPath:normalizePath(els.editPath.value,'/images/edits'),model:selectedModel(),quality:els.quality.value||'auto',referenceFormat:$('referenceFormat').value,referenceField:$('referenceField').value};}
 function writeLocalSettings(){if(!safeWrite(STORAGE_KEY,settingsValues()))throw new Error('本机设置存不下，请保留 API 配置');}
-function applySettings(s){els.apiBase.value=s.apiBase||'';els.apiKey.value=s.apiKey||'';els.imagePath.value=s.imagePath||'/images/generations';els.editPath.value=s.editPath||'/images/edits';$('referenceFormat').value=['auto','json','multipart'].includes(s.referenceFormat)?s.referenceFormat:'auto';$('referenceField').value=s.referenceField==='images'?'images':'image';if(s.model)chooseModel(s.model);if(s.quality&&[...els.quality.options].some(o=>o.value===s.quality))els.quality.value=s.quality;}
+function applySettings(s){els.apiBase.value=s.apiBase||'';els.apiKey.value=s.apiKey||'';els.imagePath.value=s.imagePath||'/images/generations';els.editPath.value=s.editPath||'/images/edits';$('referenceFormat').value=['auto','json','multipart'].includes(s.referenceFormat)?s.referenceFormat:'auto';$('referenceField').value=normalizeReferenceField(s.referenceField);if(s.model)chooseModel(s.model);if(s.quality&&[...els.quality.options].some(o=>o.value===s.quality))els.quality.value=s.quality;}
 function loadSettings(){applySettings(safeRead(STORAGE_KEY,{}));if(els.apiBase.value&&els.apiKey.value)setStatus('API 设置已恢复，可直接生成','ok');}
 function setConfigStatus(text,type=''){$('configStatus').textContent=text;$('configStatus').className='status '+type;}
 function toCloud(s){return {base:s.apiBase,key:s.apiKey,model:s.model,imagePath:s.imagePath,editPath:s.editPath,quality:s.quality,referenceFormat:s.referenceFormat,referenceField:s.referenceField};}
@@ -218,24 +218,28 @@ function snapshotRequest(){
     if(draft[id]==='')continue;const value=Number(draft[id]);if(!Number.isFinite(value)||value<min||value>max||(integer&&!Number.isInteger(value)))throw new Error(`${id} 参数不在有效范围内`);payload[name]=value;
   }
   if(draft.style.trim())payload.style=draft.style.trim();
-  return {base,key,draft,model,payload,file:referenceFile,referenceFormat:$('referenceFormat').value,referenceField:$('referenceField').value,path:normalizePath(referenceFile?els.editPath.value:els.imagePath.value,referenceFile?'/images/edits':'/images/generations')};
+  const referenceFormat=$('referenceFormat').value,referenceField=$('referenceField').value;
+  return {base,key,draft,model,payload,file:referenceFile,referenceFormat,referenceField,referencePreference:{format:referenceFormat,field:referenceField},path:normalizePath(referenceFile?els.editPath.value:els.imagePath.value,referenceFile?'/images/edits':'/images/generations')};
 }
 function fileDataUrl(file,signal){return new Promise((resolve,reject)=>{const reader=new FileReader(),abort=()=>{reader.abort();reject(new DOMException('Stopped','AbortError'));};const cleanup=()=>signal?.removeEventListener('abort',abort);if(signal?.aborted){abort();return;}signal?.addEventListener('abort',abort,{once:true});reader.onload=()=>{cleanup();resolve(String(reader.result));};reader.onerror=()=>{cleanup();reject(new Error('参考图读取失败，请重新上传'));};reader.onabort=cleanup;reader.readAsDataURL(file);});}
 function requiresJson(detail){return /application\s*\/\s*json/i.test(detail)&&/(仅|只|必须|要求|支持|only|support|expect|require|content.?type|media.?type)/i.test(detail);}
+function normalizeReferenceField(field){return ['image','images'].includes(field)?field:'openai';}
+function invalidReferenceJson(detail){return /图片编辑\s*JSON\s*请求无效|invalid\s+json\s+(?:request|body)|(?:images(?:\[0\]|\.0)?|image_url).*(?:object|dictionary|对象|字段|missing|required)|(?:object|dictionary|对象).*(?:images|image_url)/i.test(detail);}
 async function rememberJsonFormat(request){
-  if($('referenceFormat').value!=='auto'||normalizeBase(els.apiBase.value)!==request.base||els.apiKey.value.trim()!==request.key)return;
-  $('referenceFormat').value='json';try{writeLocalSettings();}catch{}settingsDirty=true;
+  const original=request.referencePreference;
+  if(!original||$('referenceFormat').value!==original.format||$('referenceField').value!==original.field||normalizeBase(els.apiBase.value)!==request.base||els.apiKey.value.trim()!==request.key||normalizePath(els.editPath.value,'/images/edits')!==request.path)return;
+  $('referenceFormat').value='json';$('referenceField').value=request.referenceField;try{writeLocalSettings();}catch{}settingsDirty=true;
   try{
     const d=await configCall('load'),c=d.config;
-    if(!d.found||c.base!==request.base||c.key!==request.key||normalizePath(c.editPath,'/images/edits')!==request.path){setConfigStatus('已记住 JSON 格式；点保存同步到其他设备。','ok');return;}
-    const saved=await configCall('save',{version:d.version,config:{...c,referenceFormat:'json'}});
+    if(!d.found||c.base!==request.base||c.key!==request.key||normalizePath(c.editPath,'/images/edits')!==request.path||(c.referenceFormat||'auto')!==original.format||normalizeReferenceField(c.referenceField)!==original.field){setConfigStatus('已记住 JSON 格式；点保存同步到其他设备。','ok');return;}
+    const saved=await configCall('save',{version:d.version,config:{...c,referenceFormat:'json',referenceField:request.referenceField}});
     if(cloudVersion===d.version)cloudVersion=saved.version;
     setConfigStatus('JSON 参考图格式已同步到云端 ✓','ok');
   }catch{setConfigStatus('本机已记住 JSON 格式；下次点保存可同步云端。');}
 }
 async function requestGeneration(request,signal){
   let body,headers={Authorization:`Bearer ${request.key}`};
-  if(request.file&&request.referenceFormat==='json'){const image=await fileDataUrl(request.file,signal),payload={...request.payload};delete payload.response_format;if(request.referenceField==='images')payload.images=[image];else payload.image=image;headers['Content-Type']='application/json';body=JSON.stringify(payload);}
+  if(request.file&&request.referenceFormat==='json'){const image=await fileDataUrl(request.file,signal),payload={...request.payload};delete payload.response_format;if(request.referenceField==='images')payload.images=[image];else if(request.referenceField==='image')payload.image=image;else payload.images=[{image_url:image}];headers['Content-Type']='application/json';body=JSON.stringify(payload);}
   else if(request.file){body=new FormData();for(const [key,value] of Object.entries(request.payload)){if(key!=='response_format')body.append(key,String(value));}body.append('image',request.file,request.file.name||'reference.png');}
   else{headers['Content-Type']='application/json';body=JSON.stringify(request.payload);}
   return fetch(request.base+request.path,{method:'POST',headers,body,signal});
@@ -255,6 +259,10 @@ async function generate(request=null){
     let result=await readGenerationResult(await requestGeneration(request,run.controller.signal));
     if(request.file&&request.referenceFormat==='auto'&&[400,415,422].includes(result.r.status)&&requiresJson(result.detail)){
       request.referenceFormat='json';request.autoConverted=true;setStatus('接口需要 JSON，正在换格式上传参考图…');
+      result=await readGenerationResult(await requestGeneration(request,run.controller.signal));
+    }
+    if(request.file&&request.referenceFormat==='json'&&normalizeReferenceField(request.referenceField)!=='openai'&&[400,415,422].includes(result.r.status)&&invalidReferenceJson(result.detail)){
+      request.referenceField='openai';request.autoConverted=true;setStatus('接口要求标准图片格式，正在重新提交参考图…');
       result=await readGenerationResult(await requestGeneration(request,run.controller.signal));
     }
     if(result.r.status===400&&isLowMediumQualityError(result.detail)&&request.payload.quality!=='medium'){
