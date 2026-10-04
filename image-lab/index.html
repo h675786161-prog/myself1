@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#17151d" />
+  <title>玲的跑图台</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div><p class="eyebrow">IMAGE LAB</p><h1>玲的跑图台</h1></div>
+      <button id="settingsBtn" class="icon-btn" aria-label="API 设置">⚙</button>
+    </header>
+    <section class="workspace">
+      <div class="panel controls">
+        <div class="section-title"><h2>生成</h2><button id="randomPromptBtn" class="ghost-btn">灵感骰子</button></div>
+        <label class="field"><span>提示词</span><textarea id="prompt" rows="7" placeholder="写你想画的画面……"></textarea></label>
+        <div class="quick-row" id="presetChips">
+          <button data-text="二次元平涂，画面干净，线条流畅，低饱和配色">二次元平涂</button><button data-text="韩式CG厚涂，清透柔光，高级插画质感">韩系CG</button><button data-text="全身构图，成年女性，自然体态，非男性向">成年体</button><button data-text="干净、平滑、统一，大色块叙事，无细碎噪点，无脏污颗粒">干净画面</button>
+        </div>
+        <label class="field"><span>负面词 <small>可选</small></span><textarea id="negativePrompt" rows="3" placeholder="低质量，畸形手，多余手指……"></textarea></label>
+        <div class="grid two"><label class="field compact"><span>模型</span><select id="model"><option value="">先连接 API</option></select></label><label class="field compact"><span>数量</span><select id="count"><option value="1">1 张</option><option value="2">2 张</option><option value="4">4 张</option></select></label></div>
+        <div class="grid two"><label class="field compact"><span>比例</span><select id="size"><option value="1024x1024">1:1 · 1024×1024</option><option value="1024x1536">2:3 · 1024×1536</option><option value="1536x1024">3:2 · 1536×1024</option><option value="768x1344">4:7 · 768×1344</option><option value="1344x768">7:4 · 1344×768</option></select></label><label class="field compact"><span>质量</span><select id="quality"><option value="standard">标准</option><option value="high">高质量</option><option value="hd">HD</option></select></label></div>
+        <details class="advanced"><summary>高级参数</summary><div class="grid two inner-grid"><label class="field compact"><span>Seed</span><input id="seed" type="number" placeholder="随机" /></label><label class="field compact"><span>CFG</span><input id="cfg" type="number" step="0.5" min="1" max="30" placeholder="留空" /></label><label class="field compact"><span>Steps</span><input id="steps" type="number" min="1" max="100" placeholder="留空" /></label><label class="field compact"><span>风格</span><input id="style" placeholder="natural / vivid" /></label></div></details>
+        <button id="generateBtn" class="primary-btn">生成图片</button><p id="status" class="status">尚未连接 API</p>
+      </div>
+      <div class="panel gallery-panel"><div class="section-title"><h2>出图</h2><div class="gallery-actions"><button id="clearBtn" class="ghost-btn">清空</button></div></div><div id="gallery" class="gallery empty"><div class="empty-state"><div class="empty-icon">✦</div><p>图片会出现在这里。</p><span>人类花半小时写提示词，然后怪模型不懂自己。传统艺能。</span></div></div></div>
+    </section>
+  </main>
+  <dialog id="settingsDialog"><form method="dialog" class="settings-card"><div class="dialog-head"><div><p class="eyebrow">CONNECTION</p><h2>API 设置</h2></div><button value="cancel" class="icon-btn">×</button></div><label class="field"><span>API Base URL</span><input id="apiBase" placeholder="https://example.com/v1" /></label><label class="field"><span>API Key</span><input id="apiKey" type="password" placeholder="sk-..." /></label><label class="field"><span>图片生成路径</span><input id="imagePath" placeholder="/images/generations" /></label><div class="dialog-note">设置只保存在当前浏览器 localStorage。别把 Key 塞进公开仓库，互联网已经够会捡垃圾了。</div><div class="dialog-actions"><button id="testBtn" type="button" class="ghost-btn">测试并拉取模型</button><button id="saveSettingsBtn" type="button" class="primary-btn small">保存</button></div></form></dialog>
+  <template id="imageCardTemplate"><article class="image-card"><div class="image-wrap"><img alt="生成图片" /></div><div class="card-meta"><div class="meta-copy"></div><div class="card-buttons"><button class="mini-btn copy-btn">复制提示词</button><a class="mini-btn open-btn" target="_blank" rel="noreferrer">查看原图</a></div></div></article></template>
+  <script src="./app.js"></script>
+</body></html>
