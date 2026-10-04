@@ -146,7 +146,18 @@
       function saveToken(token){try{localStorage.setItem(tokenKey,token)}catch{}}
       function clearToken(){try{localStorage.removeItem(tokenKey)}catch{}}
       function request(body){return new Promise((resolve,reject)=>{const xhr=new XMLHttpRequest();xhr.open('POST',endpoint,true);xhr.timeout=15000;xhr.setRequestHeader('Content-Type','application/json');xhr.onload=()=>{let data={};try{data=JSON.parse(xhr.responseText||'{}')}catch{}if(xhr.status>=200&&xhr.status<300){if(body.action==='login'&&!data.token){const e=new Error('登录响应缺少会话令牌，请刷新后重试');e.status=xhr.status;reject(e);return}resolve(data);return}const e=new Error(data.error||`登录失败（HTTP ${xhr.status||0}）`);e.status=xhr.status;reject(e)};xhr.onerror=()=>reject(new Error('网络连接失败，请再试一次'));xhr.ontimeout=()=>reject(new Error('连接超时，请再试一次'));xhr.send(JSON.stringify(body))})}
-      function loadApp(){if(appLoaded)return;appLoaded=true;const script=document.createElement('script');script.src='./app.js?v=20261004-reference-url-v5';script.onload=()=>{document.documentElement.dataset.imageLabReady='1'};script.onerror=()=>{const status=document.getElementById('status');if(status){status.textContent='跑图脚本加载失败，请刷新页面';status.className='status bad'}};document.body.appendChild(script)}
+      function loadApp(){
+        if(appLoaded)return;appLoaded=true;
+        const script=document.createElement('script');script.src='./app.js?v=20261004-reference-url-v5';
+        script.onload=()=>{
+          const addon=document.createElement('script');addon.src='./reference-cache.js?v=20261005-reference-cache-v1';
+          addon.onload=()=>{document.documentElement.dataset.imageLabReady='1'};
+          addon.onerror=()=>{document.documentElement.dataset.imageLabReady='1';const status=document.getElementById('status');if(status){status.textContent='参考图 URL 适配模块加载失败；普通生图还能用，刷新页面再试';status.className='status bad'}};
+          document.body.appendChild(addon);
+        };
+        script.onerror=()=>{const status=document.getElementById('status');if(status){status.textContent='跑图脚本加载失败，请刷新页面';status.className='status bad'}};
+        document.body.appendChild(script);
+      }
       function openSite(token){if(token)saveToken(token);document.body.classList.add('access-granted');gate.hidden=true;gate.style.display='none';root.hidden=false;root.style.display='block';loadApp()}
       form.addEventListener('submit',async(event)=>{event.preventDefault();enter.disabled=true;error.textContent='正在登录…';try{const data=await request({action:'login',code:code.value});openSite(data.token)}catch(err){error.textContent=err&&err.message?err.message:'登录失败，请再试一次'}finally{enter.disabled=false}});
       (async()=>{const token=readToken();if(!token){error.textContent='';return}try{await request({action:'verify',token});openSite(token)}catch(err){if(err&&err.status===401)clearToken();error.textContent=err&&err.status===401?'登录已过期，请重新输入访问码。':'自动登录失败，可以重新输入访问码。'}})();
