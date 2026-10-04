@@ -4917,7 +4917,7 @@ SOFTWARE.
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const style=document.createElement('style');style.textContent=`
  .studyFlow{font-size:17px;line-height:1.7}.studyFlow *{box-sizing:border-box}.studyFlow [hidden]{display:none!important}.studyFlow .sfTop{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;color:var(--muted,#766b7c);font-size:14px}.studyFlow .sfTop select{max-width:100%;min-height:42px;font:inherit;border:1px solid #ded4e6;border-radius:10px;background:var(--card,#fff);color:inherit;padding:7px}
- .studyFlow .sfMain{padding:22px 18px;margin:14px 0;border:1px solid #e2d8e9;border-radius:18px;background:var(--card,#fff)}.studyFlow .sfTerm{font-size:29px;line-height:1.3;overflow-wrap:anywhere;font-weight:750;margin:8px 0}.studyFlow .sfMeaning{font-size:19px;margin:10px 0}.studyFlow .sfAnchor{border-left:4px solid #9276a6;padding:8px 14px;margin:16px 0}.studyFlow .sfPrompt{font-size:24px;line-height:1.5;overflow-wrap:anywhere}.studyFlow .sfScene{padding:14px;background:#f4eff7;color:#39313e;border-radius:12px;margin:14px 0}.studyFlow .sfScene p{margin:4px 0}.studyFlow .sfChoices{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}.studyFlow button{min-height:46px;touch-action:manipulation}.studyFlow .sfChoices button{text-align:left;font:inherit;padding:14px;border:1px solid #d9cce2;border-radius:12px;background:var(--card,#fff);color:inherit;overflow-wrap:anywhere}.studyFlow .sfChoices .correct{border:2px solid #63846c;background:#eff7f1}.studyFlow .sfChoices .wrong{border-color:#b6766e;background:#fff1ed}.studyFlow .sfFooter{display:flex;flex-wrap:wrap;gap:9px;position:sticky;bottom:0;padding:12px 0 max(12px,env(safe-area-inset-bottom));background:var(--bg,#fffaf5);z-index:2}.studyFlow .sfFooter button{flex:1;min-width:125px;font-size:16px}.studyFlow details{margin:14px 0;font-size:16px}.studyFlow summary{cursor:pointer;min-height:44px;padding:8px 0}.studyFlow .sfOther{padding:10px 0;border-bottom:1px solid #e6dfe9}.studyFlow .sfOther b{display:block}.studyFlow .sfMessage{font-weight:600}.studyFlow .sfExtra{font-size:14px;color:var(--muted,#766b7c)}.studyFlow .sfTools{display:flex;gap:8px;flex-wrap:wrap}.studyFlow .sfTools button{font-size:15px}.studyFlow button:focus-visible{outline:3px solid #8d72a2;outline-offset:3px}
+ .studyFlow .sfMain{padding:22px 18px;margin:14px 0;border:1px solid #e2d8e9;border-radius:18px;background:var(--card,#fff)}.studyFlow .sfTerm{font-size:29px;line-height:1.3;overflow-wrap:anywhere;font-weight:750;margin:8px 0}.studyFlow .sfMeaning{font-size:19px;margin:10px 0}.studyFlow .sfAnchor{border-left:4px solid #9276a6;padding:8px 14px;margin:16px 0}.studyFlow .sfPrompt{font-size:24px;line-height:1.5;overflow-wrap:anywhere}.studyFlow .sfScene{padding:14px;background:#f4eff7;color:#39313e;border-radius:12px;margin:14px 0}.studyFlow .sfScene p{margin:4px 0}.studyFlow .sfChoices{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}.studyFlow button{min-height:46px;touch-action:manipulation}.studyFlow .sfChoices button{text-align:left;font:inherit;padding:14px;border:1px solid #d9cce2;border-radius:12px;background:var(--card,#fff);color:inherit;overflow-wrap:anywhere}.studyFlow .sfChoices .correct{border:2px solid #63846c;background:#eff7f1}.studyFlow .sfChoices .wrong{border-color:#b6766e;background:#fff1ed}.studyFlow .sfFooter{display:flex;flex-wrap:wrap;gap:9px;position:relative;padding:12px 0 max(12px,env(safe-area-inset-bottom));background:var(--bg,#fffaf5);z-index:2}.studyFlow .sfFooter button{flex:1;min-width:125px;font-size:16px}.studyFlow details{margin:14px 0;font-size:16px}.studyFlow summary{cursor:pointer;min-height:44px;padding:8px 0}.studyFlow .sfOther{padding:10px 0;border-bottom:1px solid #e6dfe9}.studyFlow .sfOther b{display:block}.studyFlow .sfMessage{font-weight:600}.studyFlow .sfExtra{font-size:14px;color:var(--muted,#766b7c)}.studyFlow .sfTools{display:flex;gap:8px;flex-wrap:wrap}.studyFlow .sfTools button{font-size:15px}.studyFlow button:focus-visible{outline:3px solid #8d72a2;outline-offset:3px}
  @media(max-width:540px){.studyFlow .sfChoices{grid-template-columns:1fr}.studyFlow .sfMain{padding:16px}.studyFlow .sfPrompt{font-size:22px}.studyFlow .sfTerm{font-size:27px}}
  `;document.head.append(style);
  function mount(o){
@@ -4994,6 +4994,12 @@ SOFTWARE.
   if(legacy.length)return legacy[0];
   return null;
  }
+ function waitForResume(host,p,bank,level,ready){
+  const id=p.studyFlowTurn?.id;if(!id||bank.some(w=>w.id===id)||window.englishFullVocab?.loaded?.(level))return false;
+  host.innerHTML='<p role="status">正在恢复上一张，等完整词库加载后继续。原来的答案和进度会保留。</p><button class="btn" data-resume-retry>重新加载词库</button>';
+  host.querySelector('button').onclick=async e=>{const button=e.currentTarget;button.disabled=true;try{await window.englishFullVocab?.load?.(level,true);if(host.isConnected){if(bank.some(w=>w.id===id)||window.englishFullVocab?.loaded?.(level))ready();else host.querySelector('[role="status"]').textContent='暂时没取到完整词库，原记录已保留。联网后可以重试。'}}finally{button.disabled=false}};
+  return true;
+ }
  function mount(o){
   const {host,word:w,bank,progress:p}=o;p.flow=p.flow||{};p.review=p.review||{};p.learned=p.learned||{};
   const r=p.flow[w.id]||(p.flow[w.id]={hits:0,misses:0,last:0,kinds:{}});r.kinds=r.kinds||{};
@@ -5023,7 +5029,7 @@ SOFTWARE.
   });
  }
  function rest(host,onContinue){host.innerHTML='<div class="certFeedback"><b>这一小轮可以停了</b><p>这一轮先到这里。学习记录已经保存，下次从该回顾的开始。</p><button class="btn" id="studyContinue">还有余力，再认识几个</button></div>';host.querySelector('button').onclick=onContinue}
- window.EnglishLearningFlow={mount,pick,rest,day,cap,style};
+ window.EnglishLearningFlow={mount,pick,rest,day,cap,style,waitForResume};
 })();
 
 </script>
@@ -5251,6 +5257,7 @@ SOFTWARE.
     const spell=vocabMode==='spell',memory=vocabMode==='memory',flow=vocabMode==='flow';
 
     if(flow&&window.EnglishLearningFlow){
+      if(pendingResume&&p.studyFlowTurn?.id===pendingResume&&window.EnglishLearningFlow.waitForResume(el('vocabContent'),p,CERT_VOCAB[l],l,renderVocab)){window.dispatchEvent(new CustomEvent('englishcertificaterender',{detail:{level:l,view}}));return;}
       if(p.studyPaused&&p.studyPauseDate===dayKey()){if(window.EnglishLearningFlow.pick(p,CERT_VOCAB[l],vocabId)){chooseWord();return;}window.EnglishLearningFlow.rest(el('vocabContent'),()=>chooseWord(true));return;}
       window.EnglishLearningFlow.mount({host:el('vocabContent'),word:w,bank:CERT_VOCAB[l],progress:p,save:changed,activity:()=>dailyDone('vocab-flow:'+w.id),next:chooseWord});
       window.dispatchEvent(new CustomEvent('englishcertificaterender',{detail:{level:l,view}}));return;
@@ -6245,12 +6252,14 @@ SOFTWARE.
   function openLazy(){
     const body=shell('轻松学一会儿','先看懂，再慢慢记住。随时可以停。'),p=progress();let current=bank().find(w=>w.id===p.studyFlowTurn?.id);
     const render=(extra=false)=>{
+      if(window.EnglishLearningFlow.waitForResume(body,p,bank(),level(),()=>{current=bank().find(w=>w.id===p.studyFlowTurn?.id);render()}))return;
       current=current||window.EnglishLearningFlow.pick(p,bank(),null,extra);
       if(!current){window.EnglishLearningFlow.rest(body,()=>render(true));return;}
       window.certificateUI?.resumeWord?.(current.id);
-      window.EnglishLearningFlow.mount({host:body,word:current,bank:bank(),progress:p,save:persist,activity:()=>dailyDone('vocab-flow:'+current.id),next:()=>{current=window.EnglishLearningFlow.pick(p,bank(),current.id);render()}});
+      window.EnglishLearningFlow.mount({host:body,word:current,bank:bank(),progress:p,save:persist,activity:()=>{touchStreak();const today=dayKey();state.dailyDone[today]=state.dailyDone[today]||{};state.dailyDone[today]['vocab-flow:'+current.id]=true;},next:()=>{current=window.EnglishLearningFlow.pick(p,bank(),current.id);render()}});
     };
-    ensureDialog().addEventListener('close',()=>window.certificateUI?.refresh(),{once:true});render();
+    const loaded=()=>{if(ensureDialog().open&&body.isConnected){current=bank().find(w=>w.id===p.studyFlowTurn?.id)||current;render()}};window.addEventListener('englishvocabularchange',loaded);
+    ensureDialog().addEventListener('close',()=>{window.removeEventListener('englishvocabularchange',loaded);window.certificateUI?.refresh()},{once:true});render();
   }
 
   function updateBadge(){const badge=$('smartAdaptiveBadge');if(badge){const text='🧠 今天到期 '+dueCount();if(badge.textContent!==text)badge.textContent=text;}}
