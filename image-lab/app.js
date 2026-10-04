@@ -352,7 +352,8 @@ function snapshotRequest(){
 }
 function fileDataUrl(file,signal){return new Promise((resolve,reject)=>{const reader=new FileReader(),abort=()=>{reader.abort();reject(new DOMException('Stopped','AbortError'));};const cleanup=()=>signal?.removeEventListener('abort',abort);if(signal?.aborted){abort();return;}signal?.addEventListener('abort',abort,{once:true});reader.onload=()=>{cleanup();resolve(String(reader.result));};reader.onerror=()=>{cleanup();reject(new Error('参考图读取失败，请重新上传'));};reader.onabort=cleanup;reader.readAsDataURL(file);});}
 function requiresJson(detail){return /application\s*\/\s*json/i.test(detail)&&/(仅|只|必须|要求|支持|only|support|expect|require|content.?type|media.?type)/i.test(detail);}
-function normalizeReferenceField(field){return ['image','images'].includes(field)?field:'openai';}
+function normalizeReferenceField(field){return ['image','images','url-object'].includes(field)?field:'openai';}
+function requiresUrlObject(detail){return /每个\s*image\s*都必须提供有效(?:的)?\s*url|请使用\s*image\.url/i.test(detail);}
 function invalidReferenceJson(detail){return /图片编辑\s*JSON\s*请求无效|invalid\s+json\s+(?:request|body)|(?:images(?:\[0\]|\.0)?|image_url).*(?:object|dictionary|对象|字段|missing|required)|(?:object|dictionary|对象).*(?:images|image_url)/i.test(detail);}
 function requiresImageUrl(detail){return /每个\s*image.*(?:有效|合法).*URL|(?:image|图片).*(?:valid\s+(?:https?\s+)?URL|必须.*(?:https?|在线).*链接)|(?:base64|data.?url).*(?:不支持|not\s+supported)/i.test(detail);}
 async function rememberJsonFormat(request){
@@ -371,7 +372,7 @@ async function rememberJsonFormat(request){
 async function requestGeneration(request,signal){
   if(shouldBridge(request.base,request.connectionMode)||request.file&&request.referenceFormat==='url'){if(request.file&&request.referenceFormat==='auto'&&usesApiBridge(request.base)){request.referenceFormat='url';request.autoConverted=true;}return bridgeRequest(request,signal);}
   let body,headers={Authorization:`Bearer ${request.key}`};
-  if(request.file&&request.referenceFormat==='json'){const image=await fileDataUrl(request.file,signal),payload={...request.payload};delete payload.response_format;if(request.referenceField==='images')payload.images=[image];else if(request.referenceField==='image')payload.image=image;else payload.images=[{image_url:image}];headers['Content-Type']='application/json';body=JSON.stringify(payload);}
+  if(request.file&&request.referenceFormat==='json'){const image=await fileDataUrl(request.file,signal),payload={...request.payload};delete payload.response_format;if(request.referenceField==='images')payload.images=[image];else if(request.referenceField==='image')payload.image=image;else if(request.referenceField==='url-object')payload.images=[{url:image}];else payload.images=[{image_url:image}];headers['Content-Type']='application/json';body=JSON.stringify(payload);}
   else if(request.file){body=new FormData();for(const [key,value] of Object.entries(request.payload)){if(key!=='response_format')body.append(key,String(value));}body.append('image',request.file,request.file.name||'reference.png');}
   else{headers['Content-Type']='application/json';body=JSON.stringify(request.payload);}
   return fetch(request.base+request.path,{method:'POST',headers,body,signal});
@@ -402,6 +403,10 @@ async function generate(request=null){
     }
     if(request.file&&['json','url'].includes(request.referenceFormat)&&normalizeReferenceField(request.referenceField)!=='openai'&&[400,415,422].includes(result.r.status)&&invalidReferenceJson(result.detail)){
       request.referenceField='openai';request.autoConverted=true;setStatus('接口要求标准图片格式，正在重新提交参考图…');
+      result=await readGenerationResult(await requestGeneration(request,run.controller.signal));
+    }
+    if(request.file&&['json','url'].includes(request.referenceFormat)&&request.referenceField!=='url-object'&&[400,415,422].includes(result.r.status)&&requiresUrlObject(result.detail)){
+      request.referenceField='url-object';request.autoConverted=true;setStatus('接口要求 url 图片字段，正在适配参考图格式…');
       result=await readGenerationResult(await requestGeneration(request,run.controller.signal));
     }
     if(request.file&&request.referenceFormat!=='url'&&[400,415,422].includes(result.r.status)&&requiresImageUrl(result.detail)){
