@@ -8,6 +8,7 @@ on:
       - 'code/**'
       - 'mom-ai/**'
       - 'japanese/**'
+      - 'image-lab/**'
       - 'index.html'
       - 'release.json'
       - '.github/workflows/learning-pages.yml'
@@ -63,6 +64,19 @@ jobs:
               target = root / name
               target.parent.mkdir(parents=True, exist_ok=True)
               shutil.copyfile(source, target)
+
+          image_lab_files = (
+              'image-lab/index.html',
+              'image-lab/style.css',
+              'image-lab/app.js',
+          )
+          for name in image_lab_files:
+              source = Path(name)
+              assert source.exists(), name
+              target = root / name
+              target.parent.mkdir(parents=True, exist_ok=True)
+              shutil.copyfile(source, target)
+
           (root / '.nojekyll').touch()
           PY
       - uses: actions/configure-pages@v5
