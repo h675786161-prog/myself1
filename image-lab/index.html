@@ -11,6 +11,7 @@
     #accessGate{min-height:100dvh;display:grid;place-items:center;padding:24px;background:#111015;color:#f6f2fb;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
     .access-card{width:min(100%,390px);background:#1b1821;border:1px solid rgba(255,255,255,.1);border-radius:24px;padding:30px;box-shadow:0 20px 70px rgba(0,0,0,.34)}
     .access-card h1{font-size:24px;margin:0 0 10px}.access-card p{font-size:14px;line-height:1.7;color:#a99db9;margin:0 0 12px}.access-card label{font-size:13px;font-weight:700;color:#dcd5e7}.access-card input,.access-card button{width:100%;font:inherit;padding:14px;border-radius:14px;margin-top:10px}.access-card input{border:1px solid rgba(255,255,255,.1);background:#16141b;color:#f6f2fb;outline:none}.access-card input:focus{border-color:#a886e8;box-shadow:0 0 0 3px rgba(168,134,232,.12)}.access-card button{border:0;background:linear-gradient(135deg,#a982e8,#e18dac);color:#fff;font-weight:800;cursor:pointer}.access-card button:disabled{opacity:.55}.access-error{min-height:22px;margin-top:12px!important;color:#ff9d9d!important;font-size:13px!important}
+    #appRoot{display:none}.access-granted #accessGate{display:none!important}.access-granted #appRoot{display:block!important}
   </style>
 </head>
 <body>
@@ -43,121 +44,46 @@
           <h2>生成</h2>
           <button id="randomPromptBtn" class="ghost-btn">灵感骰子</button>
         </div>
-
-        <label class="field">
-          <span>提示词</span>
-          <textarea id="prompt" rows="7" placeholder="写你想画的画面……"></textarea>
-        </label>
-
+        <label class="field"><span>提示词</span><textarea id="prompt" rows="7" placeholder="写你想画的画面……"></textarea></label>
         <div class="quick-row" id="presetChips">
           <button data-text="二次元平涂，画面干净，线条流畅，低饱和配色">二次元平涂</button>
           <button data-text="韩式CG厚涂，清透柔光，高级插画质感">韩系CG</button>
           <button data-text="全身构图，成年女性，自然体态，非男性向">成年体</button>
           <button data-text="干净、平滑、统一，大色块叙事，无细碎噪点，无脏污颗粒">干净画面</button>
         </div>
-
-        <label class="field">
-          <span>负面词 <small>可选</small></span>
-          <textarea id="negativePrompt" rows="3" placeholder="低质量，畸形手，多余手指……"></textarea>
-        </label>
-
+        <label class="field"><span>负面词 <small>可选</small></span><textarea id="negativePrompt" rows="3" placeholder="低质量，畸形手，多余手指……"></textarea></label>
         <div class="grid two">
-          <label class="field compact">
-            <span>模型</span>
-            <select id="model"><option value="">先连接 API</option></select>
-          </label>
-          <label class="field compact">
-            <span>数量</span>
-            <select id="count">
-              <option value="1">1 张</option>
-              <option value="2">2 张</option>
-              <option value="4">4 张</option>
-            </select>
-          </label>
+          <label class="field compact"><span>模型</span><select id="model"><option value="">先连接 API</option></select></label>
+          <label class="field compact"><span>数量</span><select id="count"><option value="1">1 张</option><option value="2">2 张</option><option value="4">4 张</option></select></label>
         </div>
-
         <div class="grid two">
-          <label class="field compact">
-            <span>比例</span>
-            <select id="size">
-              <option value="1024x1024">1:1 · 1024×1024</option>
-              <option value="1024x1536">2:3 · 1024×1536</option>
-              <option value="1536x1024">3:2 · 1536×1024</option>
-              <option value="768x1344">4:7 · 768×1344</option>
-              <option value="1344x768">7:4 · 1344×768</option>
-            </select>
-          </label>
-          <label class="field compact">
-            <span>质量</span>
-            <select id="quality">
-              <option value="standard">标准</option>
-              <option value="high">高质量</option>
-              <option value="hd">HD</option>
-            </select>
-          </label>
+          <label class="field compact"><span>比例</span><select id="size"><option value="1024x1024">1:1 · 1024×1024</option><option value="1024x1536">2:3 · 1024×1536</option><option value="1536x1024">3:2 · 1536×1024</option><option value="768x1344">4:7 · 768×1344</option><option value="1344x768">7:4 · 1344×768</option></select></label>
+          <label class="field compact"><span>质量</span><select id="quality"><option value="standard">标准</option><option value="high">高质量</option><option value="hd">HD</option></select></label>
         </div>
-
-        <details class="advanced">
-          <summary>高级参数</summary>
-          <div class="grid two inner-grid">
-            <label class="field compact"><span>Seed</span><input id="seed" type="number" placeholder="随机" /></label>
-            <label class="field compact"><span>CFG</span><input id="cfg" type="number" step="0.5" min="1" max="30" placeholder="留空" /></label>
-            <label class="field compact"><span>Steps</span><input id="steps" type="number" min="1" max="100" placeholder="留空" /></label>
-            <label class="field compact"><span>风格</span><input id="style" placeholder="natural / vivid" /></label>
-          </div>
-        </details>
-
+        <details class="advanced"><summary>高级参数</summary><div class="grid two inner-grid"><label class="field compact"><span>Seed</span><input id="seed" type="number" placeholder="随机" /></label><label class="field compact"><span>CFG</span><input id="cfg" type="number" step="0.5" min="1" max="30" placeholder="留空" /></label><label class="field compact"><span>Steps</span><input id="steps" type="number" min="1" max="100" placeholder="留空" /></label><label class="field compact"><span>风格</span><input id="style" placeholder="natural / vivid" /></label></div></details>
         <button id="generateBtn" class="primary-btn">生成图片</button>
         <p id="status" class="status">尚未连接 API</p>
       </div>
 
       <div class="panel gallery-panel">
-        <div class="section-title">
-          <h2>出图</h2>
-          <div class="gallery-actions">
-            <button id="clearBtn" class="ghost-btn">清空</button>
-          </div>
-        </div>
-        <div id="gallery" class="gallery empty">
-          <div class="empty-state">
-            <div class="empty-icon">✦</div>
-            <p>图片会出现在这里。</p>
-            <span>人类花半小时写提示词，然后怪模型不懂自己。传统艺能。</span>
-          </div>
-        </div>
+        <div class="section-title"><h2>出图</h2><div class="gallery-actions"><button id="clearBtn" class="ghost-btn">清空</button></div></div>
+        <div id="gallery" class="gallery empty"><div class="empty-state"><div class="empty-icon">✦</div><p>图片会出现在这里。</p><span>人类花半小时写提示词，然后怪模型不懂自己。传统艺能。</span></div></div>
       </div>
     </section>
   </main>
 
   <dialog id="settingsDialog">
     <form method="dialog" class="settings-card">
-      <div class="dialog-head">
-        <div><p class="eyebrow">CONNECTION</p><h2>API 设置</h2></div>
-        <button value="cancel" class="icon-btn">×</button>
-      </div>
+      <div class="dialog-head"><div><p class="eyebrow">CONNECTION</p><h2>API 设置</h2></div><button value="cancel" class="icon-btn">×</button></div>
       <label class="field"><span>API Base URL</span><input id="apiBase" placeholder="https://example.com/v1" /></label>
       <label class="field"><span>API Key</span><input id="apiKey" type="password" placeholder="sk-..." /></label>
       <label class="field"><span>图片生成路径</span><input id="imagePath" placeholder="/images/generations" /></label>
       <div class="dialog-note">设置只保存在当前浏览器 localStorage。别把 Key 塞进公开仓库，互联网已经够会捡垃圾了。</div>
-      <div class="dialog-actions">
-        <button id="testBtn" type="button" class="ghost-btn">测试并拉取模型</button>
-        <button id="saveSettingsBtn" type="button" class="primary-btn small">保存</button>
-      </div>
+      <div class="dialog-actions"><button id="testBtn" type="button" class="ghost-btn">测试并拉取模型</button><button id="saveSettingsBtn" type="button" class="primary-btn small">保存</button></div>
     </form>
   </dialog>
 
-  <template id="imageCardTemplate">
-    <article class="image-card">
-      <div class="image-wrap"><img alt="生成图片" /></div>
-      <div class="card-meta">
-        <div class="meta-copy"></div>
-        <div class="card-buttons">
-          <button class="mini-btn copy-btn">复制提示词</button>
-          <a class="mini-btn open-btn" target="_blank" rel="noreferrer">查看原图</a>
-        </div>
-      </div>
-    </article>
-  </template>
+  <template id="imageCardTemplate"><article class="image-card"><div class="image-wrap"><img alt="生成图片" /></div><div class="card-meta"><div class="meta-copy"></div><div class="card-buttons"><button class="mini-btn copy-btn">复制提示词</button><a class="mini-btn open-btn" target="_blank" rel="noreferrer">查看原图</a></div></div></article></template>
 
   <script>
     (() => {
@@ -171,45 +97,81 @@
       const error = document.getElementById('gateError');
       let appLoaded = false;
 
-      async function request(body) {
-        const r = await fetch(endpoint, {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify(body),
-          signal: AbortSignal.timeout(15000)
+      function readToken() {
+        try { return localStorage.getItem(tokenKey) || ''; } catch { return ''; }
+      }
+      function saveToken(token) {
+        try { localStorage.setItem(tokenKey, token); } catch {}
+      }
+      function clearToken() {
+        try { localStorage.removeItem(tokenKey); } catch {}
+      }
+      function request(body) {
+        return new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open('POST', endpoint, true);
+          xhr.timeout = 15000;
+          xhr.setRequestHeader('Content-Type', 'application/json');
+          xhr.onload = () => {
+            let data = {};
+            try { data = JSON.parse(xhr.responseText || '{}'); } catch {}
+            if (xhr.status >= 200 && xhr.status < 300) {
+              if (body.action === 'login' && !data.token) {
+                const e = new Error('登录响应缺少会话令牌，请刷新后重试');
+                e.status = xhr.status;
+                reject(e);
+                return;
+              }
+              resolve(data);
+              return;
+            }
+            const e = new Error(data.error || `登录失败（HTTP ${xhr.status || 0}）`);
+            e.status = xhr.status;
+            reject(e);
+          };
+          xhr.onerror = () => reject(new Error('网络连接失败，请再试一次'));
+          xhr.ontimeout = () => reject(new Error('连接超时，请再试一次'));
+          xhr.send(JSON.stringify(body));
         });
-        const d = await r.json();
-        if (!r.ok) throw new Error(d.error || '暂时无法登录');
-        return d;
       }
-
+      function loadApp() {
+        if (appLoaded) return;
+        appLoaded = true;
+        const script = document.createElement('script');
+        script.src = './app.js?v=20261004-2035';
+        script.onload = () => { document.documentElement.dataset.imageLabReady = '1'; };
+        script.onerror = () => {
+          const status = document.getElementById('status');
+          if (status) { status.textContent = '跑图脚本加载失败，请刷新页面'; status.className = 'status bad'; }
+        };
+        document.body.appendChild(script);
+      }
       function openSite(token) {
-        if (token) localStorage.setItem(tokenKey, token);
+        if (token) saveToken(token);
+        document.body.classList.add('access-granted');
         gate.hidden = true;
+        gate.style.display = 'none';
         root.hidden = false;
-        if (!appLoaded) {
-          appLoaded = true;
-          const script = document.createElement('script');
-          script.src = './app.js';
-          document.body.appendChild(script);
-        }
+        root.style.display = 'block';
+        loadApp();
       }
 
-      form.addEventListener('submit', async (e) => {
-        e.preventDefault();
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
         enter.disabled = true;
         error.textContent = '正在登录…';
         try {
-          const d = await request({action: 'login', code: code.value});
-          openSite(d.token);
-        } catch (e) {
-          error.textContent = e.name === 'TimeoutError' ? '连接超时，请再试一次' : e.message;
+          const data = await request({action: 'login', code: code.value});
+          openSite(data.token);
+        } catch (err) {
+          error.textContent = err && err.message ? err.message : '登录失败，请再试一次';
+        } finally {
           enter.disabled = false;
         }
       });
 
       (async () => {
-        const token = localStorage.getItem(tokenKey);
+        const token = readToken();
         if (!token) {
           error.textContent = '';
           return;
@@ -217,9 +179,9 @@
         try {
           await request({action: 'verify', token});
           openSite(token);
-        } catch (e) {
-          if (String(e.message).includes('过期')) localStorage.removeItem(tokenKey);
-          error.textContent = '请重新输入访问码，或检查网络后刷新。';
+        } catch (err) {
+          if (err && err.status === 401) clearToken();
+          error.textContent = err && err.status === 401 ? '登录已过期，请重新输入访问码。' : '自动登录失败，可以重新输入访问码。';
         }
       })();
     })();
