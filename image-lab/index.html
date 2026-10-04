@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#17151d" />
   <meta name="robots" content="noindex,nofollow,noarchive" />
   <title>玲的跑图台</title>
-  <link rel="stylesheet" href="./style.css?v=20261004-workspace-v2" />
+  <link rel="stylesheet" href="./style.css?v=20261004-prompt-studio-v4" />
   <style>
     #accessGate{min-height:100dvh;display:grid;place-items:center;padding:24px;background:#111015;color:#f6f2fb;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
     .access-card{width:min(100%,390px);background:#1b1821;border:1px solid rgba(255,255,255,.1);border-radius:24px;padding:30px;box-shadow:0 20px 70px rgba(0,0,0,.34)}
@@ -39,6 +39,7 @@
     <section class="workspace" data-view="editor">
       <div class="panel controls">
         <div class="section-title"><h2>生成</h2><button id="randomPromptBtn" class="ghost-btn">灵感骰子</button></div>
+        <button id="promptWriterBtn" class="writer-entry" type="button"><span>✦</span><div><strong>AI 帮我写提示词</strong><small>说说你想画什么，我来整理画面</small></div><span>→</span></button>
 
         <label class="field"><span class="prompt-label">提示词 <small id="draftStatus" role="status">草稿自动保存</small></span><textarea id="prompt" rows="7" placeholder="写主体和场景就行，画风、气质、光影可以交给下面的懒人按钮……"></textarea></label>
 
@@ -89,7 +90,7 @@
 
         <details class="advanced"><summary>高级参数</summary><div class="grid two inner-grid"><label class="field compact"><span>Seed</span><input id="seed" type="number" placeholder="随机" /></label><label class="field compact"><span>CFG</span><input id="cfg" type="number" step="0.5" min="1" max="30" placeholder="留空" /></label><label class="field compact"><span>Steps</span><input id="steps" type="number" min="1" max="100" placeholder="留空" /></label><label class="field compact"><span>风格</span><input id="style" placeholder="natural / vivid" /></label></div></details>
 
-        <div class="generate-dock"><div class="generate-actions"><button id="generateBtn" class="primary-btn">生成图片</button><button id="stopBtn" class="ghost-btn" type="button" hidden>停止</button></div><p id="status" class="status" role="status" aria-live="polite">尚未连接 API</p><button id="retryBtn" class="ghost-btn" type="button" hidden>重试刚才的请求</button></div>
+        <div class="generate-dock"><div class="generate-actions"><button id="generateBtn" class="primary-btn">生成图片</button><button id="stopBtn" class="ghost-btn" type="button" hidden>停止</button></div><p id="status" class="status" role="status" aria-live="polite">尚未连接 API</p><details id="connectionDiagnostic" class="connection-diagnostic" hidden><summary>查看连接诊断</summary><p id="connectionDiagnosticText"></p></details><button id="retryBtn" class="ghost-btn" type="button" hidden>重试刚才的请求</button></div>
       </div>
 
       <div class="panel gallery-panel">
@@ -103,29 +104,34 @@
   <dialog id="libraryDialog" class="library-dialog">
     <div class="library-card">
       <div class="dialog-head library-head"><div><p class="eyebrow">LAZY PROMPT KIT</p><h2>🐱 关键词库</h2></div><button id="libraryCloseBtn" class="icon-btn" type="button" aria-label="关闭">×</button></div>
-      <div class="library-top-actions"><button id="smartRecipeBtn" class="primary-btn small" type="button">✨ 帮我配一套</button><button id="randomWordsBtn" class="ghost-btn" type="button">🎲 随便塞几条</button></div>
+      <div class="library-top-actions"><button id="libraryWriterBtn" class="primary-btn small" type="button">✦ AI 帮写提示词</button><button id="smartRecipeBtn" class="ghost-btn" type="button">✨ 配一套关键词</button><button id="randomWordsBtn" class="ghost-btn" type="button">🎲 随机</button></div>
       <input id="librarySearch" class="library-search" type="search" placeholder="搜索：冷白皮 / 厚涂 / 港风 / 破碎感……" autocomplete="off" />
       <div class="library-tabs" id="libraryTabs"><button type="button" class="active" data-library-mode="all">全部</button><button type="button" data-library-mode="favorites">★ 收藏</button><button type="button" data-library-mode="recent">最近用过</button></div>
-      <div id="libraryGroups" class="library-groups"></div>
-      <p class="library-note">点关键词直接加入提示词，重复词会自动跳过。点 ★ 收藏常用词。整类全加也给你留了，虽然这种行为多少有点像把调料柜倒进锅里。</p>
+      <div id="libraryGroups" class="library-groups" aria-label="关键词分类"></div>
+      <div class="library-footer"><p id="librarySelection" class="micro-hint" aria-live="polite">点关键词加入，点 ☆ 收藏</p><button id="libraryDoneBtn" class="ghost-btn" type="button">返回编辑</button></div>
     </div>
   </dialog>
 
   <dialog id="settingsDialog">
     <form method="dialog" class="settings-card">
-      <div class="dialog-head"><div><p class="eyebrow">CONNECTION</p><h2>API 设置</h2></div><button value="cancel" class="icon-btn">×</button></div>
+      <div class="dialog-head"><div><p class="eyebrow">CONNECTION</p><h2>API 方案</h2></div><button value="cancel" class="icon-btn" aria-label="关闭设置">×</button></div>
+      <section class="scheme-manager"><label class="field"><span>已保存的方案</span><select id="schemeSelect"><option value="">尚未保存方案</option></select></label><div class="scheme-actions"><button id="newSchemeBtn" class="ghost-btn" type="button">另存新方案</button><button id="deleteSchemeBtn" class="ghost-btn" type="button" disabled>删除方案</button></div><label class="field"><span>方案名称</span><input id="schemeName" maxlength="80" placeholder="例如：常用 / 备用 / 公益站" /></label></section>
+      <label class="field"><span>连接方式</span><select id="connectionMode"><option value="auto">自动 · 按接口适配</option><option value="direct">浏览器直连</option><option value="proxy">后端转发 · 需要先保存方案</option></select></label><h3 class="settings-section-title">生图接口</h3>
       <label class="field"><span>API Base URL</span><input id="apiBase" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://example.com/v1" /></label>
       <label class="field"><span>API Key</span><input id="apiKey" type="password" autocomplete="off" spellcheck="false" placeholder="sk-..." /></label>
       <label class="field"><span>模型名 <small>可拉取，也可手动填写</small></span><input id="manualModel" autocomplete="off" placeholder="模型列表不可用时，直接填模型名" /></label>
       <label class="field"><span>文生图路径</span><input id="imagePath" placeholder="/images/generations" /></label>
       <label class="field"><span>参考图路径</span><input id="editPath" placeholder="/images/edits" /></label>
-      <div class="grid two"><label class="field"><span>参考图上传格式</span><select id="referenceFormat"><option value="auto">自动兼容</option><option value="json">JSON · Base64 图片</option><option value="multipart">表单 · 文件上传</option></select></label><label class="field"><span>JSON 图片格式</span><select id="referenceField"><option value="openai">标准格式 · 推荐</option><option value="image">兼容格式 · image</option><option value="images">兼容格式 · images 字符串数组</option></select></label></div>
-      <div class="dialog-note">自动模式会按接口要求切换上传格式。JSON 默认使用标准格式；仅在服务商明确要求时选择兼容格式。API 配置加密同步，出图和草稿保存在本机。</div>
+      <div class="grid two"><label class="field"><span>参考图上传格式</span><select id="referenceFormat"><option value="auto">自动兼容</option><option value="json">JSON · Base64 图片</option><option value="url">JSON · 临时图片链接</option><option value="multipart">表单 · 文件上传</option></select></label><label class="field"><span>JSON 图片格式</span><select id="referenceField"><option value="openai">标准格式 · 推荐</option><option value="image">兼容格式 · image</option><option value="images">兼容格式 · images 字符串数组</option></select></label></div>
+      <section class="writer-settings"><h3 class="settings-section-title">AI 写词接口</h3><label class="check-field"><input id="writerSameApi" type="checkbox" checked />共用上面的地址和 Key</label><div id="writerConnectionFields" hidden><label class="field"><span>写词 API Base URL</span><input id="writerBase" type="url" autocomplete="off" placeholder="https://example.com/v1" /></label><label class="field"><span>写词 API Key</span><input id="writerKey" type="password" autocomplete="off" placeholder="sk-..." /></label></div><label class="field"><span>文字模型 <small>选择支持聊天的模型</small></span><input id="writerModel" list="writerModels" autocomplete="off" placeholder="拉取模型后选择，也可以手填" /><datalist id="writerModels"></datalist></label><button id="writerModelsBtn" class="ghost-btn" type="button">拉取写词模型</button><details class="writer-advanced"><summary>自定义写词路径</summary><label class="field"><input id="writerPath" placeholder="/chat/completions" aria-label="写词请求路径" /></label></details></section>
+      <div class="dialog-note">自动模式会按接口要求切换上传格式。支持文件、Base64 和临时图片链接。需要后端转发时，先保存方案。JSON 默认使用标准格式。API 配置加密同步，出图和草稿保存在本机。</div>
       <p id="configStatus" class="status" role="status">正在检查云端配置…</p>
-      <button id="restoreSettingsBtn" class="ghost-btn" type="button">读取云端配置</button>
-      <div class="dialog-actions"><button id="testBtn" type="button" class="ghost-btn">测试并拉取模型</button><button id="saveSettingsBtn" type="button" class="primary-btn small">保存</button></div>
+      <button id="restoreSettingsBtn" class="ghost-btn" type="button">读取云端方案</button>
+      <div class="dialog-actions"><button id="testBtn" type="button" class="ghost-btn">拉取生图模型</button><button id="saveSettingsBtn" type="button" class="primary-btn small">保存方案</button></div>
     </form>
   </dialog>
+
+  <dialog id="writerDialog" class="writer-dialog"><div class="writer-card"><div class="dialog-head"><div><p class="eyebrow">PROMPT ASSISTANT</p><h2>把画面说给我听</h2></div><button id="writerCloseBtn" type="button" class="icon-btn" aria-label="关闭 AI 写词">×</button></div><div class="writer-scroll"><div class="writer-connection"><span id="writerConnectionHint">先在 API 方案中选择文字模型</span><button id="writerSettingsBtn" type="button" class="mini-btn">设置</button></div><label class="field"><span>你想画什么？</span><textarea id="writerBrief" rows="5" placeholder="比如：她在雨后的街边买饮料，蹲在发光的贩卖机前，有点发呆，粉色头发。画面要干净，灯光冷一点，别看镜头。"></textarea><small>直接用白话写，也可以用键盘语音输入。</small></label><div class="grid two"><label class="field"><span>输出语言</span><select id="writerLanguage"><option value="zh">中文</option><option value="en">英文</option></select></label><label class="field"><span>详细程度</span><select id="writerDetail"><option value="balanced">适中 · 抓住画面</option><option value="concise">简短 · 少堆词</option><option value="detailed">详细 · 细化构图</option></select></label></div><label class="check-field"><input id="writerUseCurrent" type="checkbox" checked />结合编辑器里现有的提示词</label><div class="writer-generate-actions"><button id="writerGenerateBtn" class="primary-btn" type="button">整理成提示词</button><button id="writerStopBtn" class="ghost-btn" type="button" hidden>停止</button></div><p id="writerStatus" class="status" role="status" aria-live="polite">整理结果会先显示在这里，你可以改完再用。</p><section id="writerResult" class="writer-result" hidden><h3>整理好了</h3><label class="field"><span>提示词 <small>可以直接修改</small></span><textarea id="writerPromptResult" rows="7"></textarea></label><label class="field"><span>负面词</span><textarea id="writerNegativeResult" rows="3"></textarea></label><div class="writer-result-actions"><button id="writerApplyBtn" class="primary-btn" type="button">填入编辑器</button><button id="writerAppendBtn" class="ghost-btn" type="button">追加到原提示词</button><button id="writerCopyBtn" class="ghost-btn" type="button">复制</button></div></section></div></div></dialog>
 
   <template id="imageCardTemplate"><article class="image-card"><button class="image-wrap preview-btn" type="button" aria-label="放大查看图片"><img alt="生成图片" loading="lazy" /></button><div class="card-meta"><div class="image-info"></div><div class="meta-copy"></div><div class="card-buttons"><button class="mini-btn reuse-btn">复用参数</button><button class="mini-btn reference-btn">当参考图</button><button class="mini-btn download-btn">保存图片</button><button class="mini-btn copy-btn">复制提示词</button></div></div></article></template>
   <dialog id="previewDialog" class="preview-dialog"><div class="preview-card"><div class="dialog-head"><h2>原图预览</h2><button id="previewCloseBtn" type="button" class="icon-btn" aria-label="关闭预览">×</button></div><img id="previewFullImage" alt="生成图片预览" /><p id="previewPrompt" class="preview-prompt"></p><a id="previewOriginal" class="mini-btn" target="_blank" rel="noreferrer">打开原图</a></div></dialog>
@@ -140,7 +146,7 @@
       function saveToken(token){try{localStorage.setItem(tokenKey,token)}catch{}}
       function clearToken(){try{localStorage.removeItem(tokenKey)}catch{}}
       function request(body){return new Promise((resolve,reject)=>{const xhr=new XMLHttpRequest();xhr.open('POST',endpoint,true);xhr.timeout=15000;xhr.setRequestHeader('Content-Type','application/json');xhr.onload=()=>{let data={};try{data=JSON.parse(xhr.responseText||'{}')}catch{}if(xhr.status>=200&&xhr.status<300){if(body.action==='login'&&!data.token){const e=new Error('登录响应缺少会话令牌，请刷新后重试');e.status=xhr.status;reject(e);return}resolve(data);return}const e=new Error(data.error||`登录失败（HTTP ${xhr.status||0}）`);e.status=xhr.status;reject(e)};xhr.onerror=()=>reject(new Error('网络连接失败，请再试一次'));xhr.ontimeout=()=>reject(new Error('连接超时，请再试一次'));xhr.send(JSON.stringify(body))})}
-      function loadApp(){if(appLoaded)return;appLoaded=true;const script=document.createElement('script');script.src='./app.js?v=20261004-json-reference-v3';script.onload=()=>{document.documentElement.dataset.imageLabReady='1'};script.onerror=()=>{const status=document.getElementById('status');if(status){status.textContent='跑图脚本加载失败，请刷新页面';status.className='status bad'}};document.body.appendChild(script)}
+      function loadApp(){if(appLoaded)return;appLoaded=true;const script=document.createElement('script');script.src='./app.js?v=20261004-prompt-studio-v4';script.onload=()=>{document.documentElement.dataset.imageLabReady='1'};script.onerror=()=>{const status=document.getElementById('status');if(status){status.textContent='跑图脚本加载失败，请刷新页面';status.className='status bad'}};document.body.appendChild(script)}
       function openSite(token){if(token)saveToken(token);document.body.classList.add('access-granted');gate.hidden=true;gate.style.display='none';root.hidden=false;root.style.display='block';loadApp()}
       form.addEventListener('submit',async(event)=>{event.preventDefault();enter.disabled=true;error.textContent='正在登录…';try{const data=await request({action:'login',code:code.value});openSite(data.token)}catch(err){error.textContent=err&&err.message?err.message:'登录失败，请再试一次'}finally{enter.disabled=false}});
       (async()=>{const token=readToken();if(!token){error.textContent='';return}try{await request({action:'verify',token});openSite(token)}catch(err){if(err&&err.status===401)clearToken();error.textContent=err&&err.status===401?'登录已过期，请重新输入访问码。':'自动登录失败，可以重新输入访问码。'}})();
