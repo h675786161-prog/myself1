@@ -140,6 +140,69 @@
   </dialog>
 
   <div id="toast" class="toast" role="status"></div>
+  <script>
+  (() => {
+    const MODELS_API = 'https://ibpffxzdjvgydnhmvmvc.supabase.co/functions/v1/code-models';
+    const showToast = (message, ms = 3200) => {
+      const el = document.querySelector('#toast');
+      if (!el) return;
+      el.textContent = message;
+      el.classList.add('show');
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => el.classList.remove('show'), ms);
+    };
+
+    document.addEventListener('click', async (event) => {
+      const button = event.target?.closest?.('#loadModelsBtn');
+      if (!button) return;
+
+      const baseInput = document.querySelector('#aiBaseUrlInput');
+      const keyInput = document.querySelector('#aiKeyInput');
+      const select = document.querySelector('#modelSelect');
+      const baseUrl = baseInput?.value?.trim() || '';
+      const apiKey = keyInput?.value?.trim() || '';
+
+      // 已经登录且没有临时填写新接口时，交回主程序使用服务端已保存配置。
+      if (!baseUrl && !apiKey) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+
+      if (!baseUrl || !apiKey) {
+        showToast('拉取模型只需要填 AI Base URL 和 API Key，两项都要有');
+        return;
+      }
+
+      const oldText = button.textContent;
+      button.disabled = true;
+      button.textContent = '拉取中…';
+      try {
+        const res = await fetch(MODELS_API, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({base_url: baseUrl, api_key: apiKey})
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data?.message || data?.error || `HTTP ${res.status}`);
+        const models = Array.isArray(data.models) ? data.models : [];
+        select.innerHTML = '<option value="">选择模型</option>';
+        for (const id of models) {
+          const option = document.createElement('option');
+          option.value = id;
+          option.textContent = id;
+          select.appendChild(option);
+        }
+        showToast(models.length ? `拉到 ${models.length} 个模型` : '接口返回成功，但模型列表是空的');
+      } catch (err) {
+        showToast(`拉取失败：${err?.message || err}`, 4200);
+      } finally {
+        button.disabled = false;
+        button.textContent = oldText || '拉取模型';
+      }
+    }, true);
+  })();
+  </script>
   <script type="module" src="./app-server.js"></script>
 </body>
 </html>
