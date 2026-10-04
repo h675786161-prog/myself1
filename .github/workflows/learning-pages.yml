@@ -6,6 +6,9 @@ on:
       - 'english/**'
       - 'tax/**'
       - 'code/**'
+      - 'mom-ai/**'
+      - 'japanese/**'
+      - 'index.html'
       - 'release.json'
       - '.github/workflows/learning-pages.yml'
   workflow_dispatch:
@@ -35,6 +38,15 @@ jobs:
           root.mkdir()
           allowed = {
               'english/index.html',
+              'mom-ai/app.js',
+              'mom-ai/styles.css',
+              'mom-ai/icon.svg',
+              'mom-ai/manifest.webmanifest',
+              'mom-ai/sw.js',
+              'japanese/index.html',
+              'mom-ai/index.html',
+              'mom-ai/setup.html',
+              'index.html',
               'tax/index.html',
               'code/index.html',
               'code/styles.css',
@@ -51,7 +63,6 @@ jobs:
               target = root / name
               target.parent.mkdir(parents=True, exist_ok=True)
               shutil.copyfile(source, target)
-          (root / 'index.html').write_text('<!doctype html><meta charset="utf-8"><a href="./english/">英语学习</a> · <a href="./tax/">税务师</a> · <a href="./code/">玲七 Code</a><script>location.replace("./english/")</script>')
           (root / '.nojekyll').touch()
           PY
       - uses: actions/configure-pages@v5
