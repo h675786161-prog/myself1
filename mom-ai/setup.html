@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<meta name="theme-color" content="#f7f3fa">
+<title>妈妈专线 · 配置</title>
+<style>
+:root{--bg:#f5f1f7;--card:#fff;--ink:#342e38;--muted:#827986;--line:#e8e0eb;--accent:#8f73b7}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 20% 0,#e8ddf1,transparent 34%),var(--bg);font-family:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;color:var(--ink)}
+.wrap{width:min(100% - 24px,560px);margin:0 auto;padding:26px 0 50px}h1{font-size:22px;margin:0}.sub{font-size:12px;color:var(--muted);margin:6px 0 18px;line-height:1.6}.card{background:rgba(255,255,255,.95);border:1px solid var(--line);border-radius:24px;padding:18px;box-shadow:0 15px 44px rgba(70,56,80,.08)}label{display:block;margin:13px 0 0;font-size:12px;color:#756d79}input{display:block;width:100%;height:48px;margin-top:6px;padding:0 13px;border:1px solid #ded5e2;border-radius:14px;background:white;color:var(--ink);font:inherit}.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:15px}button{border:0;border-radius:14px;min-height:46px;background:#eee8f1;color:#5f5367;font:inherit;font-weight:750}button.primary{background:var(--accent);color:white}.status{margin-top:14px;padding:11px 12px;border-radius:13px;background:#f7f3f9;color:#716778;font-size:12px;line-height:1.55;white-space:pre-wrap}.note{margin-top:14px;color:var(--muted);font-size:11px;line-height:1.7}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>七｜妈妈专线 · 服务端配置</h1>
+  <div class="sub">这个页面只给玲用。阿姨的聊天页不会显示 API、模型或密钥。</div>
+  <div class="card">
+    <label>管理员口令<input id="admin" type="password" autocomplete="current-password" placeholder="输入管理员口令"></label>
+    <label>OpenAI 兼容 Base URL<input id="base" placeholder="https://example.com/v1" autocomplete="off"></label>
+    <label>API Key<input id="key" type="password" placeholder="留空则保留服务端现有 Key" autocomplete="off"></label>
+    <label>模型<input id="model" placeholder="例如 gpt-5.6" autocomplete="off"></label>
+    <div class="actions">
+      <button id="load">读取当前配置</button>
+      <button class="primary" id="save">保存配置</button>
+      <button id="test">测试连接</button>
+      <button id="open">打开妈妈专线</button>
+    </div>
+    <div class="status" id="status">还没有读取。</div>
+    <div class="note">API Key 只发给你的 Supabase Edge Function 并保存在服务端私有状态，不写进网页源码，也不会出现在妈妈的浏览器设置里。</div>
+  </div>
+</div>
+<script>
+const API='https://ibpffxzdjvgydnhmvmvc.supabase.co/functions/v1/mom-ai';
+const $=s=>document.querySelector(s);
+function status(s){$('#status').textContent=s}
+async function call(action,extra={}){
+  const admin_code=$('#admin').value.trim();
+  if(!admin_code)throw new Error('先填管理员口令');
+  const r=await fetch(API,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action,admin_code,...extra})});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(d.message||d.error||('HTTP '+r.status));
+  return d;
+}
+$('#load').onclick=async()=>{status('读取中…');try{const d=await call('admin_status');$('#base').value=d.base_url||'';$('#model').value=d.model||'';status(d.configured?'已配置。API Key 已保存在服务端。':'还没完成配置。')}catch(e){status('读取失败：'+e.message)}};
+$('#save').onclick=async()=>{status('保存中…');try{await call('admin_setup',{base_url:$('#base').value.trim(),api_key:$('#key').value.trim(),model:$('#model').value.trim()});$('#key').value='';status('保存好了 ✓\n接下来点“测试连接”。')}catch(e){status('保存失败：'+e.message)}};
+$('#test').onclick=async()=>{status('正在让模型回一句测试消息…');try{const d=await call('admin_test');status('测试成功 ✓\n模型回复：'+d.reply)}catch(e){status('测试失败：'+e.message)}};
+$('#open').onclick=()=>location.href=location.pathname;
+</script>
+</body>
+</html>
