@@ -38,6 +38,9 @@ jobs:
           root = Path('_site')
           root.mkdir()
           allowed = {
+              'image-lab/index.html',
+              'image-lab/style.css',
+              'image-lab/app.js',
               'english/index.html',
               'mom-ai/app.js',
               'mom-ai/styles.css',
@@ -61,18 +64,6 @@ jobs:
               assert name in allowed, name
               assert source.exists(), name
               assert hashlib.sha256(source.read_bytes()).hexdigest() == expected, name
-              target = root / name
-              target.parent.mkdir(parents=True, exist_ok=True)
-              shutil.copyfile(source, target)
-
-          image_lab_files = (
-              'image-lab/index.html',
-              'image-lab/style.css',
-              'image-lab/app.js',
-          )
-          for name in image_lab_files:
-              source = Path(name)
-              assert source.exists(), name
               target = root / name
               target.parent.mkdir(parents=True, exist_ok=True)
               shutil.copyfile(source, target)

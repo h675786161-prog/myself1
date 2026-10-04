@@ -16,6 +16,9 @@
     "mom-ai/icon.svg": "ae74a5f5b420a00dcdd7a0a23c39136d90ec597dae9b626244bdb1f10b920fe1",
     "mom-ai/manifest.webmanifest": "32568e937999226f8f60f9a4e6ea5246154288cde029ea2c83b0a4e01b49771d",
     "mom-ai/sw.js": "1359c1e844d55e75f62bf3473600e999f397c24924b633b6c48207a88e915087",
-    "japanese/index.html": "204b46efca99e142899807652e39c2aacc741afb744d44cc994bc16065f70a51"
+    "japanese/index.html": "204b46efca99e142899807652e39c2aacc741afb744d44cc994bc16065f70a51",
+    "image-lab/index.html": "a742f60d3593724d370f193dc97cc782cf0880589d52decded6156ea887f900f",
+    "image-lab/app.js": "99ec4514946bc22ea49f17a2ca1ed2acfb189f6a73831069c3227bc231d24fe8",
+    "image-lab/style.css": "3fd1c5b709fbdcd8e6a52670d53db1f17a1bf8e399534686e1f3d57ce3d6bc2f"
   }
 }

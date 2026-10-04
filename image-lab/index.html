@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#17151d" />
   <meta name="robots" content="noindex,nofollow,noarchive" />
   <title>玲的跑图台</title>
-  <link rel="stylesheet" href="./style.css?v=20261004-2155" />
+  <link rel="stylesheet" href="./style.css?v=20261004-workspace-v2" />
   <style>
     #accessGate{min-height:100dvh;display:grid;place-items:center;padding:24px;background:#111015;color:#f6f2fb;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
     .access-card{width:min(100%,390px);background:#1b1821;border:1px solid rgba(255,255,255,.1);border-radius:24px;padding:30px;box-shadow:0 20px 70px rgba(0,0,0,.34)}
@@ -35,11 +35,12 @@
       <button id="settingsBtn" class="icon-btn" aria-label="API 设置">⚙</button>
     </header>
 
-    <section class="workspace">
+    <nav class="workspace-tabs" id="workspaceTabs" aria-label="工作区"><button type="button" data-view="editor" class="active" aria-pressed="true">编辑</button><button type="button" data-view="gallery" aria-pressed="false">出图 <span id="historyCount">0</span></button></nav>
+    <section class="workspace" data-view="editor">
       <div class="panel controls">
         <div class="section-title"><h2>生成</h2><button id="randomPromptBtn" class="ghost-btn">灵感骰子</button></div>
 
-        <label class="field"><span>提示词</span><textarea id="prompt" rows="7" placeholder="写主体和场景就行，画风、气质、光影可以交给下面的懒人按钮……"></textarea></label>
+        <label class="field"><span class="prompt-label">提示词 <small id="draftStatus" role="status">草稿自动保存</small></span><textarea id="prompt" rows="7" placeholder="写主体和场景就行，画风、气质、光影可以交给下面的懒人按钮……"></textarea></label>
 
         <div class="lazy-tools" aria-label="懒人提示词工具">
           <button id="recipeBtn" class="lazy-main" type="button">✨ 一键配方</button>
@@ -49,6 +50,7 @@
           <button id="clearPromptBtn" type="button">清空</button>
         </div>
         <p id="recipeHint" class="micro-hint">不想挑就点“一键配方”，会自动塞一套彼此比较搭的画风、脸、气质、光影和色调。</p>
+        <div class="prompt-actions"><span id="promptCount">0 字</span><button id="copyPromptBtn" class="ghost-btn" type="button">复制完整提示词</button></div>
 
         <div class="quick-row" id="presetChips">
           <button data-text="二次元平涂，画面干净，线条流畅，低饱和配色">二次元平涂</button>
@@ -82,18 +84,18 @@
         </div>
         <div class="grid two">
           <label class="field compact"><span>比例</span><select id="size"><option value="1024x1024">1:1 · 1024×1024</option><option value="1024x1536">2:3 · 1024×1536</option><option value="1536x1024">3:2 · 1536×1024</option><option value="768x1344">4:7 · 768×1344</option><option value="1344x768">7:4 · 1344×768</option></select></label>
-          <label class="field compact"><span>质量</span><select id="quality"><option value="standard">标准</option><option value="high">高质量</option><option value="hd">HD</option></select></label>
+          <label class="field compact"><span>质量</span><select id="quality"><option value="auto">自动（推荐）</option><option value="standard">标准</option><option value="high">高质量</option><option value="hd">HD</option></select></label>
         </div>
 
         <details class="advanced"><summary>高级参数</summary><div class="grid two inner-grid"><label class="field compact"><span>Seed</span><input id="seed" type="number" placeholder="随机" /></label><label class="field compact"><span>CFG</span><input id="cfg" type="number" step="0.5" min="1" max="30" placeholder="留空" /></label><label class="field compact"><span>Steps</span><input id="steps" type="number" min="1" max="100" placeholder="留空" /></label><label class="field compact"><span>风格</span><input id="style" placeholder="natural / vivid" /></label></div></details>
 
-        <button id="generateBtn" class="primary-btn">生成图片</button>
-        <p id="status" class="status">尚未连接 API</p>
+        <div class="generate-dock"><div class="generate-actions"><button id="generateBtn" class="primary-btn">生成图片</button><button id="stopBtn" class="ghost-btn" type="button" hidden>停止</button></div><p id="status" class="status" role="status" aria-live="polite">尚未连接 API</p><button id="retryBtn" class="ghost-btn" type="button" hidden>重试刚才的请求</button></div>
       </div>
 
       <div class="panel gallery-panel">
-        <div class="section-title"><h2>出图</h2><div class="gallery-actions"><button id="clearBtn" class="ghost-btn">清空</button></div></div>
-        <div id="gallery" class="gallery empty"><div class="empty-state"><div class="empty-icon">✦</div><p>图片会出现在这里。</p><span>人类花半小时写提示词，然后怪模型不懂自己。传统艺能。</span></div></div>
+        <div class="section-title"><h2>出图</h2><div class="gallery-actions"><button id="clearBtn" class="ghost-btn">清空历史</button></div></div>
+        <p id="galleryNotice" class="micro-hint" role="status">图片和生成参数保存在这台设备。</p>
+        <div id="gallery" class="gallery empty"><div class="empty-state"><div class="empty-icon">✦</div><p>图片会出现在这里。</p><span>点历史图可以复用参数，或接着当参考图修改。</span></div></div>
       </div>
     </section>
   </main>
@@ -112,16 +114,21 @@
   <dialog id="settingsDialog">
     <form method="dialog" class="settings-card">
       <div class="dialog-head"><div><p class="eyebrow">CONNECTION</p><h2>API 设置</h2></div><button value="cancel" class="icon-btn">×</button></div>
-      <label class="field"><span>API Base URL</span><input id="apiBase" placeholder="https://example.com/v1" /></label>
-      <label class="field"><span>API Key</span><input id="apiKey" type="password" placeholder="sk-..." /></label>
+      <label class="field"><span>API Base URL</span><input id="apiBase" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://example.com/v1" /></label>
+      <label class="field"><span>API Key</span><input id="apiKey" type="password" autocomplete="off" spellcheck="false" placeholder="sk-..." /></label>
+      <label class="field"><span>模型名 <small>可拉取，也可手动填写</small></span><input id="manualModel" autocomplete="off" placeholder="模型列表不可用时，直接填模型名" /></label>
       <label class="field"><span>文生图路径</span><input id="imagePath" placeholder="/images/generations" /></label>
       <label class="field"><span>参考图路径</span><input id="editPath" placeholder="/images/edits" /></label>
-      <div class="dialog-note">参考图模式默认用 OpenAI 兼容的 multipart `/images/edits`。如果你接的站接口路径不同，在这里改一次就行。API 设置只保存在当前浏览器。</div>
+      <div class="grid two"><label class="field"><span>参考图上传格式</span><select id="referenceFormat"><option value="auto">自动兼容</option><option value="json">JSON · Base64 图片</option><option value="multipart">表单 · 文件上传</option></select></label><label class="field"><span>JSON 图片字段</span><select id="referenceField"><option value="image">image · 单张图片</option><option value="images">images · 图片数组</option></select></label></div>
+      <div class="dialog-note">上传提示“仅支持 application/json”时，自动模式会改用 JSON。如果接口文档要求图片数组，选择 images。API 配置加密同步，出图和草稿保存在本机。</div>
+      <p id="configStatus" class="status" role="status">正在检查云端配置…</p>
+      <button id="restoreSettingsBtn" class="ghost-btn" type="button">读取云端配置</button>
       <div class="dialog-actions"><button id="testBtn" type="button" class="ghost-btn">测试并拉取模型</button><button id="saveSettingsBtn" type="button" class="primary-btn small">保存</button></div>
     </form>
   </dialog>
 
-  <template id="imageCardTemplate"><article class="image-card"><div class="image-wrap"><img alt="生成图片" /></div><div class="card-meta"><div class="meta-copy"></div><div class="card-buttons"><button class="mini-btn copy-btn">复制提示词</button><a class="mini-btn open-btn" target="_blank" rel="noreferrer">查看原图</a></div></div></article></template>
+  <template id="imageCardTemplate"><article class="image-card"><button class="image-wrap preview-btn" type="button" aria-label="放大查看图片"><img alt="生成图片" loading="lazy" /></button><div class="card-meta"><div class="image-info"></div><div class="meta-copy"></div><div class="card-buttons"><button class="mini-btn reuse-btn">复用参数</button><button class="mini-btn reference-btn">当参考图</button><button class="mini-btn download-btn">保存图片</button><button class="mini-btn copy-btn">复制提示词</button></div></div></article></template>
+  <dialog id="previewDialog" class="preview-dialog"><div class="preview-card"><div class="dialog-head"><h2>原图预览</h2><button id="previewCloseBtn" type="button" class="icon-btn" aria-label="关闭预览">×</button></div><img id="previewFullImage" alt="生成图片预览" /><p id="previewPrompt" class="preview-prompt"></p><a id="previewOriginal" class="mini-btn" target="_blank" rel="noreferrer">打开原图</a></div></dialog>
 
   <script>
     (() => {
@@ -133,7 +140,7 @@
       function saveToken(token){try{localStorage.setItem(tokenKey,token)}catch{}}
       function clearToken(){try{localStorage.removeItem(tokenKey)}catch{}}
       function request(body){return new Promise((resolve,reject)=>{const xhr=new XMLHttpRequest();xhr.open('POST',endpoint,true);xhr.timeout=15000;xhr.setRequestHeader('Content-Type','application/json');xhr.onload=()=>{let data={};try{data=JSON.parse(xhr.responseText||'{}')}catch{}if(xhr.status>=200&&xhr.status<300){if(body.action==='login'&&!data.token){const e=new Error('登录响应缺少会话令牌，请刷新后重试');e.status=xhr.status;reject(e);return}resolve(data);return}const e=new Error(data.error||`登录失败（HTTP ${xhr.status||0}）`);e.status=xhr.status;reject(e)};xhr.onerror=()=>reject(new Error('网络连接失败，请再试一次'));xhr.ontimeout=()=>reject(new Error('连接超时，请再试一次'));xhr.send(JSON.stringify(body))})}
-      function loadApp(){if(appLoaded)return;appLoaded=true;const script=document.createElement('script');script.src='./app.js?v=20261004-2155';script.onload=()=>{document.documentElement.dataset.imageLabReady='1'};script.onerror=()=>{const status=document.getElementById('status');if(status){status.textContent='跑图脚本加载失败，请刷新页面';status.className='status bad'}};document.body.appendChild(script)}
+      function loadApp(){if(appLoaded)return;appLoaded=true;const script=document.createElement('script');script.src='./app.js?v=20261004-workspace-v2';script.onload=()=>{document.documentElement.dataset.imageLabReady='1'};script.onerror=()=>{const status=document.getElementById('status');if(status){status.textContent='跑图脚本加载失败，请刷新页面';status.className='status bad'}};document.body.appendChild(script)}
       function openSite(token){if(token)saveToken(token);document.body.classList.add('access-granted');gate.hidden=true;gate.style.display='none';root.hidden=false;root.style.display='block';loadApp()}
       form.addEventListener('submit',async(event)=>{event.preventDefault();enter.disabled=true;error.textContent='正在登录…';try{const data=await request({action:'login',code:code.value});openSite(data.token)}catch(err){error.textContent=err&&err.message?err.message:'登录失败，请再试一次'}finally{enter.disabled=false}});
       (async()=>{const token=readToken();if(!token){error.textContent='';return}try{await request({action:'verify',token});openSite(token)}catch(err){if(err&&err.status===401)clearToken();error.textContent=err&&err.status===401?'登录已过期，请重新输入访问码。':'自动登录失败，可以重新输入访问码。'}})();
