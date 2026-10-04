@@ -1,12 +1,21 @@
 {
   "files": {
-    "english/index.html": "0d627758a92a0aa3c09f871f99095965e9cf3051dbcdcda4ec7f975a0e878040",
-    "tax/index.html": "4aa6536d6e9453a08e601ccd4e7250991a4e328d8f28113b01e19945121ebc5f",
-    "code/index.html": "c52bb4cc4f996174bcd862e89b83af2e7627d69fa57f797a707815bbc87a4413",
+    "english/index.html": "cd11d552ab16d1a04eecaf211e810390b057735a9e7ed07119f65971a83f54a3",
+    "tax/index.html": "ffa97b785ef7b00362c1d39463d6267f693c55c46d78b716ba00de7fe7603924",
+    "code/index.html": "3b4d518f22ee2c869278c37f291fe3b9267ca94bc216aa741172c691c1174c5f",
     "code/styles.css": "35ae58188cd72d8c0b08beab2cc508896aaa5e571b772859ecd9d46bbc3f5962",
     "code/app-server.js": "5d8e46733f90ea4c7eaa286574d34c4089d87f31056df21e05a24e350e47df7b",
     "code/manifest.webmanifest": "e59a3709d8ebcad6f0a3b541f6f341a6ba754cf41c58239bcbe06179e0c79f7e",
     "code/sw.js": "cdcca4ac6449619b0b2985c5ad7f0f10a7c805c67b95709f16a71e6b75e8cd0a",
-    "code/icon.svg": "b7207c04fb07efa60f2f13d1478ccddf1c80250ad8a23c3c24456838446a3576"
+    "code/icon.svg": "b7207c04fb07efa60f2f13d1478ccddf1c80250ad8a23c3c24456838446a3576",
+    "index.html": "614a16c1c9c79f3c8e72cb50f73ce6e7c5c2de029b585e71a02e3ed7b7b7f9ef",
+    "mom-ai/index.html": "68b075ab9b6dc5ac9031345c408268b5f1dccf8ed9a565f622b60d7981c02c7b",
+    "mom-ai/setup.html": "1ea0e88116ecd8fe24e6fb6ecdbf020ae762b3d5f5a6ee6ddbb4ba65ec7b1a9e",
+    "mom-ai/app.js": "2d6db2ce8055ae13b89209c0580d7b4f4e6bce9d7e6c296677403d071776201c",
+    "mom-ai/styles.css": "b29689979c91e6734db1c3c025fbda57541cddc59798056620db212cabc66b2f",
+    "mom-ai/icon.svg": "ae74a5f5b420a00dcdd7a0a23c39136d90ec597dae9b626244bdb1f10b920fe1",
+    "mom-ai/manifest.webmanifest": "32568e937999226f8f60f9a4e6ea5246154288cde029ea2c83b0a4e01b49771d",
+    "mom-ai/sw.js": "1359c1e844d55e75f62bf3473600e999f397c24924b633b6c48207a88e915087",
+    "japanese/index.html": "227000b01c8c8a547aa4b2f7b51e50d17dc2ccafe2796696d8dfa6c60914febd"
   }
 }
