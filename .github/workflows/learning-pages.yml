@@ -1,8 +1,13 @@
-name: Deploy learning sites
+name: Deploy self websites
 on:
   push:
     branches: [main]
-    paths: ['english/**', 'tax/**', 'release.json', '.github/workflows/learning-pages.yml']
+    paths:
+      - 'english/**'
+      - 'tax/**'
+      - 'code/**'
+      - 'release.json'
+      - '.github/workflows/learning-pages.yml'
   workflow_dispatch:
 permissions:
   contents: read
@@ -23,17 +28,31 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import hashlib,json,shutil
-          manifest=json.loads(Path('release.json').read_text())
-          root=Path('_site');root.mkdir()
-          for name,expected in manifest['files'].items():
-              source=Path(name)
-              assert name in ['english/index.html','tax/index.html'], name
-              assert hashlib.sha256(source.read_bytes()).hexdigest()==expected, name
-              target=root/name;target.parent.mkdir(parents=True,exist_ok=True)
-              shutil.copyfile(source,target)
-          (root/'index.html').write_text('<!doctype html><meta charset="utf-8"><a href="./english/">英语学习</a><script>location.replace("./english/")</script>')
-          (root/'.nojekyll').touch()
+          import hashlib, json, shutil
+
+          manifest = json.loads(Path('release.json').read_text())
+          root = Path('_site')
+          root.mkdir()
+          allowed = {
+              'english/index.html',
+              'tax/index.html',
+              'code/index.html',
+              'code/styles.css',
+              'code/app-server.js',
+              'code/manifest.webmanifest',
+              'code/sw.js',
+              'code/icon.svg',
+          }
+          for name, expected in manifest['files'].items():
+              source = Path(name)
+              assert name in allowed, name
+              assert source.exists(), name
+              assert hashlib.sha256(source.read_bytes()).hexdigest() == expected, name
+              target = root / name
+              target.parent.mkdir(parents=True, exist_ok=True)
+              shutil.copyfile(source, target)
+          (root / 'index.html').write_text('<!doctype html><meta charset="utf-8"><a href="./english/">英语学习</a> · <a href="./tax/">税务师</a> · <a href="./code/">玲七 Code</a><script>location.replace("./english/")</script>')
+          (root / '.nojekyll').touch()
           PY
       - uses: actions/configure-pages@v5
         with:
