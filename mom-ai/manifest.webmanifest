@@ -1,0 +1,19 @@
+{
+  "name": "七｜妈妈专线",
+  "short_name": "妈妈专线",
+  "description": "给妈妈用的七号聊天入口",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f2f7",
+  "theme_color": "#f7f3fa",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
