@@ -1,15 +1,15 @@
-const $ = (id) => document.getElementById(id);
+const $ = id => document.getElementById(id);
 
 const els = {
   settingsBtn:$('settingsBtn'), settingsDialog:$('settingsDialog'), apiBase:$('apiBase'), apiKey:$('apiKey'), imagePath:$('imagePath'), editPath:$('editPath'),
-  saveSettingsBtn:$('saveSettingsBtn'), testBtn:$('testBtn'), generateBtn:$('generateBtn'), model:$('model'), prompt:$('prompt'),
-  negativePrompt:$('negativePrompt'), count:$('count'), size:$('size'), quality:$('quality'), seed:$('seed'), cfg:$('cfg'), steps:$('steps'),
-  style:$('style'), status:$('status'), gallery:$('gallery'), clearBtn:$('clearBtn'), randomPromptBtn:$('randomPromptBtn'), presetChips:$('presetChips'),
-  recipeBtn:$('recipeBtn'), libraryBtn:$('libraryBtn'), undoPromptBtn:$('undoPromptBtn'), dedupeBtn:$('dedupeBtn'), clearPromptBtn:$('clearPromptBtn'), recipeHint:$('recipeHint'),
+  saveSettingsBtn:$('saveSettingsBtn'), testBtn:$('testBtn'), generateBtn:$('generateBtn'), model:$('model'), prompt:$('prompt'), negativePrompt:$('negativePrompt'),
+  count:$('count'), size:$('size'), quality:$('quality'), seed:$('seed'), cfg:$('cfg'), steps:$('steps'), style:$('style'), status:$('status'), gallery:$('gallery'),
+  clearBtn:$('clearBtn'), randomPromptBtn:$('randomPromptBtn'), presetChips:$('presetChips'), recipeBtn:$('recipeBtn'), libraryBtn:$('libraryBtn'),
+  undoPromptBtn:$('undoPromptBtn'), dedupeBtn:$('dedupeBtn'), clearPromptBtn:$('clearPromptBtn'), recipeHint:$('recipeHint'),
   libraryDialog:$('libraryDialog'), libraryCloseBtn:$('libraryCloseBtn'), librarySearch:$('librarySearch'), libraryGroups:$('libraryGroups'), libraryTabs:$('libraryTabs'),
-  smartRecipeBtn:$('smartRecipeBtn'), randomWordsBtn:$('randomWordsBtn'),
-  referenceBox:$('referenceBox'), referenceInput:$('referenceInput'), referenceDrop:$('referenceDrop'), clearReferenceBtn:$('clearReferenceBtn'), replaceReferenceBtn:$('replaceReferenceBtn'),
-  referencePreview:$('referencePreview'), referenceImage:$('referenceImage'), referenceName:$('referenceName'), referenceInfo:$('referenceInfo'), referenceModeHint:$('referenceModeHint')
+  smartRecipeBtn:$('smartRecipeBtn'), randomWordsBtn:$('randomWordsBtn'), referenceBox:$('referenceBox'), referenceInput:$('referenceInput'), referenceDrop:$('referenceDrop'),
+  clearReferenceBtn:$('clearReferenceBtn'), replaceReferenceBtn:$('replaceReferenceBtn'), referencePreview:$('referencePreview'), referenceImage:$('referenceImage'),
+  referenceName:$('referenceName'), referenceInfo:$('referenceInfo'), referenceModeHint:$('referenceModeHint')
 };
 
 const STORAGE_KEY='ling-image-lab-settings-v1';
@@ -61,7 +61,7 @@ function pushUndo(){const now=els.prompt.value,last=PROMPT_UNDO[PROMPT_UNDO.leng
 function rememberTerm(term){const recent=safeRead(RECENT_KEY,[]);safeWrite(RECENT_KEY,[term,...recent.filter(x=>x!==term)].slice(0,36))}
 function appendTerms(terms,{remember=true,label=''}={}){const add=uniqueWords(Array.isArray(terms)?terms:[terms]);if(!add.length)return;pushUndo();const existing=splitPrompt(els.prompt.value),seen=new Set(existing),fresh=add.filter(x=>!seen.has(x));els.prompt.value=[...existing,...fresh].join('，');if(remember)fresh.forEach(rememberTerm);if(label)els.recipeHint.textContent=label+(fresh.length?` · 新加 ${fresh.length} 条`:' · 这些词已经在提示词里了');els.prompt.focus();renderLibrary()}
 function dedupePrompt(){pushUndo();const before=splitPrompt(els.prompt.value),after=uniqueWords(before);els.prompt.value=after.join('，');els.recipeHint.textContent=before.length===after.length?'没有重复词，清清白白。':`去掉了 ${before.length-after.length} 个重复词。`}
-function clearPrompt(){if(!els.prompt.value.trim())return;pushUndo();els.prompt.value='';els.recipeHint.textContent='提示词已清空。空空如也，模型终于也体验到了脑袋放空。'}
+function clearPrompt(){if(!els.prompt.value.trim())return;pushUndo();els.prompt.value='';els.recipeHint.textContent='提示词已清空。'}
 function undoPrompt(){if(!PROMPT_UNDO.length){els.recipeHint.textContent='没有可以撤销的操作。';return}els.prompt.value=PROMPT_UNDO.pop();els.recipeHint.textContent='撤回了一步。';renderLibrary()}
 function applyRecipe(){const recipe=RECIPE_POOL[Math.floor(Math.random()*RECIPE_POOL.length)];appendTerms(recipe.words,{label:`已套用「${recipe.name}」`});return recipe}
 function addRandomWords(){const cats=Object.keys(PROMPT_LIBRARY),picked=[];while(picked.length<6){const cat=cats[Math.floor(Math.random()*cats.length)],arr=PROMPT_LIBRARY[cat],word=arr[Math.floor(Math.random()*arr.length)];if(!picked.includes(word))picked.push(word)}appendTerms(picked,{label:'随便塞了 6 条'})}
@@ -70,34 +70,71 @@ function getFavorites(){return safeRead(FAVORITES_KEY,[])}
 function toggleFavorite(term){const f=getFavorites(),next=f.includes(term)?f.filter(x=>x!==term):[term,...f];safeWrite(FAVORITES_KEY,next.slice(0,120));renderLibrary()}
 function categoryOf(term){for(const [cat,words] of Object.entries(PROMPT_LIBRARY))if(words.includes(term))return cat;return '其他'}
 function buildChip(term){const fav=getFavorites().includes(term),wrap=document.createElement('span');wrap.className='library-chip-wrap';const add=document.createElement('button');add.type='button';add.className='library-chip';add.textContent=term;add.addEventListener('click',()=>appendTerms([term],{label:`已加入「${term}」`}));const star=document.createElement('button');star.type='button';star.className='chip-star'+(fav?' active':'');star.textContent=fav?'★':'☆';star.setAttribute('aria-label',fav?'取消收藏':'收藏');star.addEventListener('click',()=>toggleFavorite(term));wrap.append(add,star);return wrap}
-function renderFlat(words,title){if(!words.length){els.libraryGroups.innerHTML='<div class="library-empty">这里还是空的。先去点几条词，网站才有东西可以装作很懂你。</div>';return}const section=document.createElement('section');section.className='library-flat';const h=document.createElement('div');h.className='library-flat-title';h.textContent=title;const chips=document.createElement('div');chips.className='library-chips';words.forEach(w=>chips.appendChild(buildChip(w)));section.append(h,chips);els.libraryGroups.appendChild(section)}
-function renderLibrary(){if(!els.libraryGroups)return;const q=(els.librarySearch?.value||'').trim().toLowerCase();els.libraryGroups.innerHTML='';if(libraryMode==='favorites'){renderFlat(getFavorites().filter(w=>!q||w.toLowerCase().includes(q)||categoryOf(w).toLowerCase().includes(q)),'★ 收藏');return}if(libraryMode==='recent'){renderFlat(safeRead(RECENT_KEY,[]).filter(w=>!q||w.toLowerCase().includes(q)||categoryOf(w).toLowerCase().includes(q)),'最近用过');return}for(const [cat,words] of Object.entries(PROMPT_LIBRARY)){const filtered=words.filter(w=>!q||w.toLowerCase().includes(q)||cat.toLowerCase().includes(q));if(!filtered.length)continue;const details=document.createElement('details');details.className='library-group';if(q)details.open=true;const summary=document.createElement('summary');summary.innerHTML=`<span>${escapeHtml(cat)}</span><small>${filtered.length}</small>`;const body=document.createElement('div');body.className='library-group-body';const actions=document.createElement('div');actions.className='library-category-actions';const addAll=document.createElement('button');addAll.type='button';addAll.className='ghost-btn';addAll.textContent='整类加入';addAll.addEventListener('click',()=>appendTerms(filtered,{label:`已加入「${cat}」整类`}));actions.appendChild(addAll);const chips=document.createElement('div');chips.className='library-chips';filtered.forEach(w=>chips.appendChild(buildChip(w)));body.append(actions,chips);details.append(summary,body);els.libraryGroups.appendChild(details)}if(!els.libraryGroups.children.length)els.libraryGroups.innerHTML='<div class="library-empty">没搜到。换个词，别和搜索框较劲，它只是个输入框。</div>'}
+function renderFlat(words,title){if(!words.length){els.libraryGroups.innerHTML='<div class="library-empty">这里还是空的。</div>';return}const section=document.createElement('section');section.className='library-flat';const h=document.createElement('div');h.className='library-flat-title';h.textContent=title;const chips=document.createElement('div');chips.className='library-chips';words.forEach(w=>chips.appendChild(buildChip(w)));section.append(h,chips);els.libraryGroups.appendChild(section)}
+function renderLibrary(){if(!els.libraryGroups)return;const q=(els.librarySearch?.value||'').trim().toLowerCase();els.libraryGroups.innerHTML='';if(libraryMode==='favorites'){renderFlat(getFavorites().filter(w=>!q||w.toLowerCase().includes(q)||categoryOf(w).toLowerCase().includes(q)),'★ 收藏');return}if(libraryMode==='recent'){renderFlat(safeRead(RECENT_KEY,[]).filter(w=>!q||w.toLowerCase().includes(q)||categoryOf(w).toLowerCase().includes(q)),'最近用过');return}for(const [cat,words] of Object.entries(PROMPT_LIBRARY)){const filtered=words.filter(w=>!q||w.toLowerCase().includes(q)||cat.toLowerCase().includes(q));if(!filtered.length)continue;const details=document.createElement('details');details.className='library-group';if(q)details.open=true;const summary=document.createElement('summary');summary.innerHTML=`<span>${escapeHtml(cat)}</span><small>${filtered.length}</small>`;const body=document.createElement('div');body.className='library-group-body';const actions=document.createElement('div');actions.className='library-category-actions';const addAll=document.createElement('button');addAll.type='button';addAll.className='ghost-btn';addAll.textContent='整类加入';addAll.addEventListener('click',()=>appendTerms(filtered,{label:`已加入「${cat}」整类`}));actions.appendChild(addAll);const chips=document.createElement('div');chips.className='library-chips';filtered.forEach(w=>chips.appendChild(buildChip(w)));body.append(actions,chips);details.append(summary,body);els.libraryGroups.appendChild(details)}if(!els.libraryGroups.children.length)els.libraryGroups.innerHTML='<div class="library-empty">没搜到。</div>'}
 function openLibrary(){renderLibrary();els.libraryDialog.showModal();setTimeout(()=>els.librarySearch?.focus(),80)}
 
-function setReference(file){if(!file)return;if(!String(file.type||'').startsWith('image/')){setStatus('这不是图片文件。参考图多少得先是张图。','bad');return}if(file.size>25*1024*1024){setStatus('参考图超过 25MB，先压一压再喂，接口也有胃容量。','bad');return}if(referenceObjectUrl)URL.revokeObjectURL(referenceObjectUrl);referenceFile=file;referenceObjectUrl=URL.createObjectURL(file);els.referenceImage.src=referenceObjectUrl;els.referenceName.textContent=file.name||'粘贴的图片';els.referenceInfo.textContent=`${file.type||'image'} · ${humanBytes(file.size)}`;els.referenceDrop.hidden=true;els.referencePreview.hidden=false;els.clearReferenceBtn.hidden=false;els.referenceBox.classList.add('has-reference');els.referenceModeHint.textContent='已启用 · 生成时自动走参考图接口';els.generateBtn.textContent='参考图生成';setStatus('参考图已载入。现在生成会自动带上它。','ok')}
+function setReference(file){if(!file)return;if(!String(file.type||'').startsWith('image/')){setStatus('这不是图片文件。','bad');return}if(file.size>25*1024*1024){setStatus('参考图超过 25MB，先压缩一下。','bad');return}if(referenceObjectUrl)URL.revokeObjectURL(referenceObjectUrl);referenceFile=file;referenceObjectUrl=URL.createObjectURL(file);els.referenceImage.src=referenceObjectUrl;els.referenceName.textContent=file.name||'粘贴的图片';els.referenceInfo.textContent=`${file.type||'image'} · ${humanBytes(file.size)}`;els.referenceDrop.hidden=true;els.referencePreview.hidden=false;els.clearReferenceBtn.hidden=false;els.referenceBox.classList.add('has-reference');els.referenceModeHint.textContent='已启用 · 生成时自动走参考图接口';els.generateBtn.textContent='参考图生成';setStatus('参考图已载入。','ok')}
 function clearReference(){referenceFile=null;if(referenceObjectUrl){URL.revokeObjectURL(referenceObjectUrl);referenceObjectUrl=''}els.referenceInput.value='';els.referenceImage.removeAttribute('src');els.referenceDrop.hidden=false;els.referencePreview.hidden=true;els.clearReferenceBtn.hidden=true;els.referenceBox.classList.remove('has-reference','dragover');els.referenceModeHint.textContent='可选 · 上传后自动切换参考图生成';els.generateBtn.textContent='生成图片'}
 
-function loadSettings(){const s=safeRead(STORAGE_KEY,{});els.apiBase.value=s.apiBase||'';els.apiKey.value=s.apiKey||'';els.imagePath.value=s.imagePath||'/images/generations';els.editPath.value=s.editPath||'/images/edits';if(s.model)els.model.dataset.saved=s.model;if(s.apiBase&&s.apiKey){setStatus('已读取本地 API 设置，可拉取模型','ok');fetchModels().catch(()=>{})}}
-function saveSettings(){const s={apiBase:normalizeBase(els.apiBase.value),apiKey:els.apiKey.value.trim(),imagePath:normalizePath(els.imagePath.value,'/images/generations'),editPath:normalizePath(els.editPath.value,'/images/edits'),model:els.model.value||els.model.dataset.saved||''};safeWrite(STORAGE_KEY,s);setStatus('API 设置已保存在本机浏览器','ok');els.settingsDialog.close()}
+function initQualityOptions(){
+  const old=els.quality?.value||'auto';
+  if(!els.quality)return;
+  const options=[['auto','自动（推荐）'],['low','Low'],['medium','Medium'],['standard','Standard'],['high','High'],['hd','HD']];
+  els.quality.innerHTML=options.map(([v,t])=>`<option value="${v}">${t}</option>`).join('');
+  els.quality.value=options.some(([v])=>v===old)?old:'auto';
+}
+function selectedQuality(){const q=els.quality?.value||'auto';return q==='auto'?'':q}
+function isLowMediumQualityError(text){const s=String(text||'').toLowerCase();return s.includes('quality')&&s.includes('low')&&s.includes('medium')}
+
+function loadSettings(){const s=safeRead(STORAGE_KEY,{});els.apiBase.value=s.apiBase||'';els.apiKey.value=s.apiKey||'';els.imagePath.value=s.imagePath||'/images/generations';els.editPath.value=s.editPath||'/images/edits';if(s.model)els.model.dataset.saved=s.model;if(s.quality&&els.quality)els.quality.value=s.quality;if(s.apiBase&&s.apiKey){setStatus('已读取本地 API 设置，可拉取模型','ok');fetchModels().catch(()=>{})}}
+function saveSettings(){const s={apiBase:normalizeBase(els.apiBase.value),apiKey:els.apiKey.value.trim(),imagePath:normalizePath(els.imagePath.value,'/images/generations'),editPath:normalizePath(els.editPath.value,'/images/edits'),model:els.model.value||els.model.dataset.saved||'',quality:els.quality?.value||'auto'};safeWrite(STORAGE_KEY,s);setStatus('API 设置已保存在本机浏览器','ok');els.settingsDialog.close()}
 function authHeaders(){return {'Content-Type':'application/json','Authorization':`Bearer ${els.apiKey.value.trim()}`}}
 async function fetchModels(){const base=normalizeBase(els.apiBase.value),key=els.apiKey.value.trim();if(!base||!key)throw new Error('请先填写 API 地址和 Key');els.testBtn.disabled=true;els.testBtn.textContent='连接中…';try{const r=await fetch(`${base}/models`,{headers:{Authorization:`Bearer ${key}`}});if(!r.ok)throw new Error(`模型列表请求失败：HTTP ${r.status}`);const data=await r.json(),list=Array.isArray(data.data)?data.data:Array.isArray(data)?data:[],ids=list.map(x=>typeof x==='string'?x:x?.id).filter(Boolean);if(!ids.length)throw new Error('接口连上了，但没读到模型列表');els.model.innerHTML=ids.map(id=>`<option value="${escapeHtml(id)}">${escapeHtml(id)}</option>`).join('');const saved=els.model.dataset.saved;if(saved&&ids.includes(saved))els.model.value=saved;setStatus(`连接成功 · ${ids.length} 个模型`,'ok');return ids}finally{els.testBtn.disabled=false;els.testBtn.textContent='测试并拉取模型'}}
 function composedPrompt(){const prompt=els.prompt.value.trim();if(!prompt)throw new Error('提示词还空着。模型不是算命先生。');const negative=els.negativePrompt.value.trim();return negative?`${prompt}\n\nNegative prompt: ${negative}`:prompt}
-function buildPayload(){if(!els.model.value)throw new Error('先选一个模型');const p={model:els.model.value,prompt:composedPrompt(),n:Number(els.count.value||1),size:els.size.value,quality:els.quality.value,response_format:'url'};if(els.seed.value!=='')p.seed=Number(els.seed.value);if(els.cfg.value!=='')p.cfg_scale=Number(els.cfg.value);if(els.steps.value!=='')p.steps=Number(els.steps.value);if(els.style.value.trim())p.style=els.style.value.trim();return p}
-function buildReferenceForm(){if(!referenceFile)throw new Error('参考图不见了，请重新上传');if(!els.model.value)throw new Error('先选一个模型');const form=new FormData();form.append('model',els.model.value);form.append('prompt',composedPrompt());form.append('image',referenceFile,referenceFile.name||'reference.png');form.append('n',String(Number(els.count.value||1)));form.append('size',els.size.value);if(els.quality.value)form.append('quality',els.quality.value);if(els.seed.value!=='')form.append('seed',els.seed.value);if(els.cfg.value!=='')form.append('cfg_scale',els.cfg.value);if(els.steps.value!=='')form.append('steps',els.steps.value);if(els.style.value.trim())form.append('style',els.style.value.trim());return form}
+function buildPayload(){if(!els.model.value)throw new Error('先选一个模型');const p={model:els.model.value,prompt:composedPrompt(),n:Number(els.count.value||1),size:els.size.value,response_format:'url'};const q=selectedQuality();if(q)p.quality=q;if(els.seed.value!=='')p.seed=Number(els.seed.value);if(els.cfg.value!=='')p.cfg_scale=Number(els.cfg.value);if(els.steps.value!=='')p.steps=Number(els.steps.value);if(els.style.value.trim())p.style=els.style.value.trim();return p}
+function buildReferenceForm(){if(!referenceFile)throw new Error('参考图不见了，请重新上传');if(!els.model.value)throw new Error('先选一个模型');const form=new FormData();form.append('model',els.model.value);form.append('prompt',composedPrompt());form.append('image',referenceFile,referenceFile.name||'reference.png');form.append('n',String(Number(els.count.value||1)));form.append('size',els.size.value);const q=selectedQuality();if(q)form.append('quality',q);if(els.seed.value!=='')form.append('seed',els.seed.value);if(els.cfg.value!=='')form.append('cfg_scale',els.cfg.value);if(els.steps.value!=='')form.append('steps',els.steps.value);if(els.style.value.trim())form.append('style',els.style.value.trim());return form}
 async function requestGeneration(base,key){if(referenceFile){const path=normalizePath(els.editPath.value,'/images/edits');const r=await fetch(base+path,{method:'POST',headers:{Authorization:`Bearer ${key}`},body:buildReferenceForm()});return {r,path,mode:'reference'}}const path=normalizePath(els.imagePath.value,'/images/generations');const r=await fetch(base+path,{method:'POST',headers:authHeaders(),body:JSON.stringify(buildPayload())});return {r,path,mode:'text'}}
-async function generate(){const base=normalizeBase(els.apiBase.value),key=els.apiKey.value.trim();if(!base||!key){els.settingsDialog.showModal();throw new Error('先配置 API')}els.generateBtn.disabled=true;els.generateBtn.textContent=referenceFile?'参考图生成中…':'正在生成…';setStatus(referenceFile?'参考图和提示词都发出去了，等模型开工…':'请求已发出，等模型把像素揉成一团再展开…');try{const {r,path,mode}=await requestGeneration(base,key);const raw=await r.text();let data;try{data=JSON.parse(raw)}catch{data={raw}}if(!r.ok){const detail=data?.error?.message||data?.message||raw.slice(0,240)||`HTTP ${r.status}`;if(mode==='reference'&&(r.status===404||r.status===405))throw new Error(`参考图接口不可用：${path}。去 API 设置里改“参考图路径”。`);throw new Error(detail)}const images=extractImages(data);if(!images.length)throw new Error('接口返回成功，但没找到图片 URL/base64。可能这家接口字段长得比较有个性。');prependHistory(images.map(src=>({src,prompt:els.prompt.value.trim(),model:els.model.value,size:els.size.value,at:Date.now(),reference:!!referenceFile,referenceName:referenceFile?.name||''})));renderHistory();setStatus(`生成完成 · ${images.length} 张${referenceFile?' · 已使用参考图':''}`,'ok')}catch(e){setStatus(e.message||String(e),'bad');throw e}finally{els.generateBtn.disabled=false;els.generateBtn.textContent=referenceFile?'参考图生成':'生成图片'}}
+async function readGenerationResult(result){const raw=await result.r.text();let data;try{data=JSON.parse(raw)}catch{data={raw}}return {...result,raw,data,detail:data?.error?.message||data?.message||raw.slice(0,240)||`HTTP ${result.r.status}`}}
+async function generate(){
+  const base=normalizeBase(els.apiBase.value),key=els.apiKey.value.trim();
+  if(!base||!key){els.settingsDialog.showModal();throw new Error('先配置 API')}
+  els.generateBtn.disabled=true;
+  els.generateBtn.textContent=referenceFile?'参考图生成中…':'正在生成…';
+  setStatus(referenceFile?'参考图和提示词都发出去了，等模型开工…':'请求已发出…');
+  try{
+    let result=await readGenerationResult(await requestGeneration(base,key));
+    if(!result.r.ok&&isLowMediumQualityError(result.detail)&&selectedQuality()!=='medium'){
+      els.quality.value='medium';
+      setStatus('这个接口只接受 low / medium，已自动改用 medium 重试…');
+      result=await readGenerationResult(await requestGeneration(base,key));
+    }
+    if(!result.r.ok){
+      if(result.mode==='reference'&&(result.r.status===404||result.r.status===405))throw new Error(`参考图接口不可用：${result.path}。去 API 设置里改“参考图路径”。`);
+      throw new Error(result.detail);
+    }
+    const images=extractImages(result.data);
+    if(!images.length)throw new Error('接口返回成功，但没找到图片 URL/base64。');
+    prependHistory(images.map(src=>({src,prompt:els.prompt.value.trim(),model:els.model.value,size:els.size.value,at:Date.now(),reference:!!referenceFile,referenceName:referenceFile?.name||''})));
+    renderHistory();
+    setStatus(`生成完成 · ${images.length} 张${referenceFile?' · 已使用参考图':''}`,'ok');
+  }catch(e){setStatus(e.message||String(e),'bad');throw e}
+  finally{els.generateBtn.disabled=false;els.generateBtn.textContent=referenceFile?'参考图生成':'生成图片'}
+}
 function extractImages(data){const arr=Array.isArray(data?.data)?data.data:Array.isArray(data?.images)?data.images:[],out=[];for(const item of arr){if(typeof item==='string')out.push(item);else if(item?.url)out.push(item.url);else if(item?.b64_json)out.push(`data:image/png;base64,${item.b64_json}`);else if(item?.image_url)out.push(item.image_url)}if(typeof data?.url==='string')out.push(data.url);if(typeof data?.image==='string')out.push(data.image.startsWith('http')||data.image.startsWith('data:')?data.image:`data:image/png;base64,${data.image}`);return out}
+
 function getHistory(){return safeRead(HISTORY_KEY,[])}
 function setHistory(v){safeWrite(HISTORY_KEY,v.slice(0,30))}
 function prependHistory(items){setHistory([...items,...getHistory()])}
 function renderHistory(){const h=getHistory();if(!h.length){els.gallery.classList.add('empty');els.gallery.innerHTML='<div class="empty-state"><div class="empty-icon">✦</div><p>图片会出现在这里。</p><span>历史记录只保存在这个浏览器里。</span></div>';return}els.gallery.classList.remove('empty');els.gallery.innerHTML='';const tpl=$('imageCardTemplate');h.forEach(item=>{const node=tpl.content.cloneNode(true),img=node.querySelector('img');img.src=item.src;const wrap=node.querySelector('.image-wrap'),[w,hh]=String(item.size||'1x1').split('x').map(Number);if(w&&hh)wrap.style.aspectRatio=`${w}/${hh}`;node.querySelector('.meta-copy').textContent=`${item.reference?'参考图 · ':''}${item.model||'unknown'} · ${item.prompt||''}`;node.querySelector('.open-btn').href=item.src;node.querySelector('.copy-btn').addEventListener('click',async()=>{await navigator.clipboard.writeText(item.prompt||'');setStatus('提示词已复制','ok')});els.gallery.appendChild(node)})}
-function saveModelOnly(){const s=safeRead(STORAGE_KEY,{});s.model=els.model.value;safeWrite(STORAGE_KEY,s)}
+function saveModelOnly(){const s=safeRead(STORAGE_KEY,{});s.model=els.model.value;s.quality=els.quality?.value||'auto';safeWrite(STORAGE_KEY,s)}
 
 els.settingsBtn.addEventListener('click',()=>els.settingsDialog.showModal());
 els.saveSettingsBtn.addEventListener('click',saveSettings);
 els.testBtn.addEventListener('click',()=>fetchModels().catch(e=>setStatus(e.message,'bad')));
 els.generateBtn.addEventListener('click',()=>generate().catch(()=>{}));
 els.model.addEventListener('change',saveModelOnly);
+els.quality?.addEventListener('change',saveModelOnly);
 els.clearBtn.addEventListener('click',()=>{try{localStorage.removeItem(HISTORY_KEY)}catch{}renderHistory();setStatus('本地出图历史已清空')});
 els.presetChips.addEventListener('click',e=>{const btn=e.target.closest('button[data-text]');if(!btn)return;appendTerms(splitPrompt(btn.dataset.text),{label:`已加入「${btn.textContent.trim()}」`})});
 els.randomPromptBtn.addEventListener('click',()=>{const p=['雨后深夜街角，冷白偏粉蓝灯光，成年女性，自然抓拍感','花房内部，半身近景，微侧身回望，柔雾光线，安静疏离气质','复古木质房间，窗边逆光，低饱和粉灰配色，电影静帧感','未来都市天台，夜风，霓虹反光，清透CG插画，强轮廓光'];pushUndo();els.prompt.value=p[Math.floor(Math.random()*p.length)];els.recipeHint.textContent='换了一个场景灵感。'});
@@ -107,12 +144,11 @@ els.undoPromptBtn.addEventListener('click',undoPrompt);
 els.dedupeBtn.addEventListener('click',dedupePrompt);
 els.clearPromptBtn.addEventListener('click',clearPrompt);
 els.libraryCloseBtn.addEventListener('click',()=>els.libraryDialog.close());
-els.smartRecipeBtn.addEventListener('click',()=>{const r=applyRecipe();els.recipeHint.textContent=`已套用「${r.name}」；词库保持打开，想改哪条继续点。`});
+els.smartRecipeBtn.addEventListener('click',()=>{const r=applyRecipe();els.recipeHint.textContent=`已套用「${r.name}」；词库保持打开。`});
 els.randomWordsBtn.addEventListener('click',addRandomWords);
 els.librarySearch.addEventListener('input',renderLibrary);
 els.libraryTabs.addEventListener('click',e=>{const btn=e.target.closest('[data-library-mode]');if(!btn)return;libraryMode=btn.dataset.libraryMode;els.libraryTabs.querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===btn));renderLibrary()});
 els.libraryDialog.addEventListener('click',e=>{if(e.target===els.libraryDialog)els.libraryDialog.close()});
-
 els.referenceDrop.addEventListener('click',()=>els.referenceInput.click());
 els.replaceReferenceBtn.addEventListener('click',()=>els.referenceInput.click());
 els.clearReferenceBtn.addEventListener('click',clearReference);
@@ -122,6 +158,7 @@ els.referenceInput.addEventListener('change',()=>setReference(els.referenceInput
 els.referenceBox.addEventListener('drop',e=>{const file=[...(e.dataTransfer?.files||[])].find(f=>String(f.type||'').startsWith('image/'));if(file)setReference(file)});
 document.addEventListener('paste',e=>{const file=[...(e.clipboardData?.files||[])].find(f=>String(f.type||'').startsWith('image/'));if(file)setReference(file)});
 
+initQualityOptions();
 loadSettings();
 renderHistory();
 renderLibrary();
