@@ -1,6 +1,12 @@
 {
   "files": {
     "english/index.html": "0d627758a92a0aa3c09f871f99095965e9cf3051dbcdcda4ec7f975a0e878040",
-    "tax/index.html": "4aa6536d6e9453a08e601ccd4e7250991a4e328d8f28113b01e19945121ebc5f"
+    "tax/index.html": "4aa6536d6e9453a08e601ccd4e7250991a4e328d8f28113b01e19945121ebc5f",
+    "code/index.html": "91c58f294234a69524a62de9f43eb77a9f5b73c4e159e3daba5abae38fab11c4",
+    "code/styles.css": "35ae58188cd72d8c0b08beab2cc508896aaa5e571b772859ecd9d46bbc3f5962",
+    "code/app-server.js": "5d8e46733f90ea4c7eaa286574d34c4089d87f31056df21e05a24e350e47df7b",
+    "code/manifest.webmanifest": "e59a3709d8ebcad6f0a3b541f6f341a6ba754cf41c58239bcbe06179e0c79f7e",
+    "code/sw.js": "cdcca4ac6449619b0b2985c5ad7f0f10a7c805c67b95709f16a71e6b75e8cd0a",
+    "code/icon.svg": "b7207c04fb07efa60f2f13d1478ccddf1c80250ad8a23c3c24456838446a3576"
   }
 }
