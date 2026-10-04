@@ -360,6 +360,23 @@ function logoutToLogin() {
 
 async function validateSession() {
   if (!token) {
+    const sharedToken = localStorage.getItem('privateSitesSession') || '';
+    if (sharedToken) {
+      $('#loginScreen').classList.add('hidden');
+      setStatus('正在连接妈妈专线', 'warn');
+      try {
+        const data = await api('login', { site_token: sharedToken }, false);
+        if (!data.token) throw new Error('没有拿到登录凭证');
+        token = data.token;
+        localStorage.setItem(TOKEN_KEY, token);
+        setStatus(data.configured ? '在线' : '等待接口配置', data.configured ? 'ok' : 'warn');
+        return true;
+      } catch (e) {
+        $('#loginError').textContent = e.status === 401 ? '登录已过期，请刷新后重新输入访问码。' : '连接失败，请刷新重试。';
+      }
+    }
+  }
+  if (!token) {
     $('#loginScreen').classList.remove('hidden');
     return false;
   }
