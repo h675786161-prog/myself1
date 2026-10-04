@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
+  <meta name="theme-color" content="#f7f3fa">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="description" content="七｜妈妈专线">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css">
+  <title>七｜妈妈专线</title>
+</head>
+<body data-font-size="large">
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="identity">
+        <div class="avatar" aria-hidden="true">七</div>
+        <div class="identity-text">
+          <div class="name-row">
+            <h1>七</h1>
+            <span class="tag">妈妈专线</span>
+          </div>
+          <div class="status-row"><span class="dot" data-kind="ok"></span><span id="statusText">准备好了</span></div>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button class="icon-button font-button" id="fontBtn" type="button" aria-label="字号" title="字号">Aa</button>
+        <button class="icon-button" id="newChatBtn" type="button" aria-label="新对话" title="新对话">＋</button>
+        <button class="icon-button menu-button" id="historyBtn" type="button" aria-label="聊天记录" title="聊天记录">☰</button>
+      </div>
+    </header>
+
+    <div class="connection-banner" id="connectionBanner" hidden></div>
+
+    <main class="chat" id="chat" aria-live="polite">
+      <div class="date-pill">妈妈专线</div>
+      <section class="welcome-card" id="welcomeCard">
+        <div class="welcome-icon">七</div>
+        <h2>阿姨你好，我是七</h2>
+        <p>有什么想问的直接说就行。不会设置模型也没关系，那些麻烦东西已经藏起来了。</p>
+        <div class="quick-actions" aria-label="常用问法">
+          <button type="button" data-quick="帮我看看这个事情该怎么办">帮我出个主意</button>
+          <button type="button" data-quick="这个我没看懂，能不能说简单一点">给我讲简单点</button>
+          <button type="button" data-quick="我想问个生活里的问题">问个生活问题</button>
+        </div>
+      </section>
+      <div id="messages"></div>
+    </main>
+
+    <footer class="composer-wrap">
+      <div class="composer">
+        <button class="voice-button" id="voiceBtn" type="button" aria-label="语音输入" title="语音输入">🎙</button>
+        <textarea id="input" rows="1" maxlength="8000" placeholder="想问什么就直接说…" enterkeyhint="send" aria-label="消息输入框"></textarea>
+        <button class="stop-button" id="stopBtn" type="button" aria-label="停止回答" title="停止回答" hidden>■</button>
+        <button class="send-button" id="sendBtn" type="button" aria-label="发送">发送</button>
+      </div>
+      <div class="composer-note">重要的医疗、法律或大额金钱决定，最好再和专业人士确认一下。</div>
+    </footer>
+  </div>
+
+  <dialog class="sheet" id="historyDialog">
+    <div class="sheet-head">
+      <div>
+        <strong>聊天记录</strong>
+        <span>会自动保存在云端和这台手机</span>
+      </div>
+      <button class="close-button" data-close-dialog="historyDialog" type="button" aria-label="关闭">×</button>
+    </div>
+    <div class="history-search-wrap">
+      <span aria-hidden="true">⌕</span>
+      <input id="historySearch" type="search" placeholder="搜一搜以前聊过的内容" autocomplete="off">
+    </div>
+    <div class="history-list" id="historyList"></div>
+    <button class="sheet-primary" id="historyNewBtn" type="button">＋ 新建对话</button>
+  </dialog>
+
+  <dialog class="confirm-dialog" id="clearDialog">
+    <h3>新建一段对话？</h3>
+    <p>现在这段聊天不会丢，会留在聊天记录里。</p>
+    <div class="dialog-actions">
+      <button type="button" data-close-dialog="clearDialog">先不</button>
+      <button class="danger-soft" id="confirmNewBtn" type="button">新建</button>
+    </div>
+  </dialog>
+
+  <div class="login-screen" id="loginScreen">
+    <div class="login-card">
+      <div class="login-avatar">七</div>
+      <h2>妈妈专线</h2>
+      <p>第一次打开输入一次口令，以后这台手机会记住。</p>
+      <label>
+        <span>访问口令</span>
+        <input id="accessCode" type="password" inputmode="text" autocomplete="current-password" placeholder="输入口令">
+      </label>
+      <button id="loginBtn" type="button">进入聊天</button>
+      <div class="login-error" id="loginError"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status"></div>
+  <script src="./app.js" defer></script>
+</body>
+</html>
