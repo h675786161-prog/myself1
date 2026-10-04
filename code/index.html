@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#15121c" />
+  <meta name="color-scheme" content="dark light" />
+  <title>玲七 Code</title>
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <button id="menuBtn" class="icon-btn" aria-label="打开项目面板">☰</button>
+      <div class="brand">
+        <strong>玲七 Code</strong>
+        <span id="statusText">未连接</span>
+      </div>
+      <button id="settingsBtn" class="icon-btn" aria-label="设置">⚙</button>
+    </header>
+
+    <main class="chat-pane" id="chatPane">
+      <section class="hero" id="hero">
+        <div class="hero-mark">7</div>
+        <h1>像聊天一样改仓库</h1>
+        <p>选仓库，描述你想改什么。先看 Diff，再决定要不要提交。人类终于不用在六寸屏幕里假装自己有三块显示器了。</p>
+        <div class="hero-actions">
+          <button id="quickSetupBtn" class="primary-btn">先连接仓库</button>
+          <button id="openFilesBtn" class="ghost-btn">看看文件</button>
+        </div>
+      </section>
+      <div id="messages" class="messages" aria-live="polite"></div>
+    </main>
+
+    <footer class="composer-wrap">
+      <div id="contextBar" class="context-bar hidden"></div>
+      <div class="composer">
+        <textarea id="promptInput" rows="1" placeholder="比如：修一下手机端追问输入框，别动其他成熟功能"></textarea>
+        <button id="sendBtn" class="send-btn" aria-label="发送">➤</button>
+      </div>
+      <div class="composer-meta">
+        <label><input id="autoLocate" type="checkbox" checked /> 自动找相关文件</label>
+        <span id="modelBadge">未选模型</span>
+      </div>
+    </footer>
+  </div>
+
+  <aside id="projectDrawer" class="drawer left-drawer" aria-hidden="true">
+    <div class="drawer-head">
+      <div>
+        <strong>项目</strong>
+        <small id="repoLabel">未连接仓库</small>
+      </div>
+      <button class="icon-btn close-drawer" data-close="projectDrawer">×</button>
+    </div>
+    <div class="drawer-tools">
+      <input id="fileSearch" type="search" placeholder="搜索文件…" />
+      <button id="refreshTreeBtn" class="small-btn">刷新</button>
+    </div>
+    <div class="project-tabs">
+      <button class="tab-btn active" data-project-tab="files">文件</button>
+      <button class="tab-btn" data-project-tab="changes">改动 <span id="changeCount">0</span></button>
+      <button class="tab-btn" data-project-tab="git">Git</button>
+    </div>
+    <div id="filesTab" class="project-tab active">
+      <div id="fileList" class="file-list empty-state">连接仓库后显示文件</div>
+    </div>
+    <div id="changesTab" class="project-tab">
+      <div id="changesList" class="changes-list empty-state">还没有待应用改动</div>
+      <div class="drawer-bottom-actions">
+        <button id="discardChangesBtn" class="danger-ghost">全部丢弃</button>
+        <button id="applyChangesBtn" class="primary-btn" disabled>应用到分支</button>
+      </div>
+    </div>
+    <div id="gitTab" class="project-tab">
+      <label class="field">工作分支<input id="workBranch" placeholder="ai/mobile-workbench" /></label>
+      <label class="field">提交说明<input id="commitMessage" value="feat: apply AI code changes" /></label>
+      <button id="createPrBtn" class="primary-btn full" disabled>创建 Draft Pull Request</button>
+      <div id="gitLog" class="git-log"></div>
+    </div>
+  </aside>
+
+  <aside id="detailDrawer" class="drawer right-drawer" aria-hidden="true">
+    <div class="drawer-head">
+      <div>
+        <strong id="detailTitle">文件</strong>
+        <small id="detailSubtitle"></small>
+      </div>
+      <button class="icon-btn close-drawer" data-close="detailDrawer">×</button>
+    </div>
+    <div class="detail-toolbar">
+      <button id="addContextBtn" class="small-btn">加入上下文</button>
+      <button id="removeContextBtn" class="small-btn hidden">移出上下文</button>
+    </div>
+    <pre id="detailContent" class="code-view"></pre>
+  </aside>
+
+  <dialog id="settingsDialog" class="settings-dialog">
+    <form method="dialog" id="settingsForm">
+      <div class="settings-head">
+        <div><strong>连接设置</strong><small>浏览器只保存工作台会话，不保存 API 密钥</small></div>
+        <button class="icon-btn" value="cancel">×</button>
+      </div>
+
+      <section class="settings-section">
+        <h2>GitHub</h2>
+        <label class="field">仓库<input id="repoInput" placeholder="owner/repo，例如 h675786161-prog/myself" autocomplete="off" /></label>
+        <label class="field">基础分支<input id="baseBranchInput" value="main" autocomplete="off" /></label>
+        <label class="field">GitHub Token<input id="githubTokenInput" type="password" placeholder="首次连接必填；之后留空即可" autocomplete="off" /></label>
+      </section>
+
+      <section class="settings-section">
+        <h2>AI 接口</h2>
+        <label class="field">Base URL<input id="aiBaseUrlInput" placeholder="https://gensoukyou.xyz/ 或 https://example.com/v1" autocomplete="off" /></label>
+        <label class="field">API Key<input id="aiKeyInput" type="password" placeholder="首次配置或换 Key 时填写" autocomplete="off" /></label>
+        <div class="field-row">
+          <label class="field grow">模型<select id="modelSelect"><option value="">先拉取模型</option></select></label>
+          <button id="loadModelsBtn" type="button" class="small-btn align-end">拉取模型</button>
+        </div>
+        <label class="field">手动模型 ID<input id="manualModelInput" placeholder="接口菜单抽风时可以直接手填" autocomplete="off" /></label>
+      </section>
+
+      <p class="security-note">Token 和 API Key 会发送到你自己的 Supabase 私有后端，由服务端代替手机访问 GitHub 与模型接口。建议 GitHub 使用 Fine-grained Token，只授权需要修改的仓库和最小权限。浏览器端只留下签名会话。</p>
+
+      <div class="settings-actions">
+        <button value="cancel" class="ghost-btn">取消</button>
+        <button id="saveSettingsBtn" value="default" class="primary-btn">保存并连接</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="diffDialog" class="diff-dialog">
+    <div class="diff-head">
+      <div><strong id="diffTitle">改动预览</strong><small id="diffMeta"></small></div>
+      <button id="closeDiffBtn" class="icon-btn">×</button>
+    </div>
+    <pre id="diffContent" class="diff-view"></pre>
+  </dialog>
+
+  <div id="toast" class="toast" role="status"></div>
+  <script type="module" src="./app-server.js"></script>
+</body>
+</html>
