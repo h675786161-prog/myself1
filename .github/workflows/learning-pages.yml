@@ -44,6 +44,8 @@ jobs:
               'image-lab/reference-cache.js',
               'english/index.html',
               'mom-ai/app.js',
+              'mom-ai/app-core.js',
+              'mom-ai/runtime-enhancements.js',
               'mom-ai/styles.css',
               'mom-ai/icon.svg',
               'mom-ai/manifest.webmanifest',
