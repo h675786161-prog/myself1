@@ -44,7 +44,7 @@ async function openSite(token){
  localStorage.setItem(key,token);localStorage.setItem("ling_tax_private_token_v1",token);
  await prepareApiConfig(token);
  let html=d.html;
- if(!html.includes('taxCoachSessionUI')){const tag='<script>'+COACH_UI+'<\\/script>';html=/<\/body>/i.test(html)?html.replace(/<\/body>/i,tag+'</body>'):html+tag;}
+ if(!html.includes('taxCoachSessionUI')){const tag='<script>'+COACH_UI+'<\/script>';html=/<\/body>/i.test(html)?html.replace(/<\/body>/i,tag+'</body>'):html+tag;}
  document.open();document.write(html);document.close();
 }
 document.getElementById("gate").onsubmit=async e=>{e.preventDefault();const b=document.getElementById("enter"),error=document.getElementById("error");b.disabled=true;error.textContent="正在登录…";try{const d=await request({action:"login",code:document.getElementById("code").value});await openSite(d.token);}catch(e){error.textContent=e.name==="TimeoutError"?"连接超时，请再试一次":e.message;b.disabled=false;}};
