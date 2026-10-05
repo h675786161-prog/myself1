@@ -1,5 +1,32 @@
 <!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>私人站点 · 登录</title><style>*{box-sizing:border-box}body{margin:0;background:#f7f3fa;font:18px system-ui;color:#3d3447;display:grid;place-items:center;min-height:100dvh;padding:24px}main{width:min(100%,390px);background:white;border:1px solid #e5ddea;border-radius:24px;padding:30px;box-shadow:0 12px 50px #66507712}h1{font-size:24px}p{font-size:15px;line-height:1.7;color:#776c80}input,button{width:100%;font:inherit;padding:14px;border-radius:12px;border:1px solid #dcd1e4;margin-top:12px}button{background:#806292;color:white;cursor:pointer}button:disabled{opacity:.6}#error{color:#9d3654;min-height:24px;font-size:14px}label{font-size:16px}</style></head><body><main><h1>私人站点</h1><p>输入玲给你的访问码。登录后，这台设备会记住 30 天。</p><form id="gate"><label for="code">访问码</label><input id="code" type="password" autocomplete="current-password" required maxlength="120"><button id="enter">进入</button></form><p id="error" role="status">正在检查登录…</p></main><script>
 const endpoint="https://ibpffxzdjvgydnhmvmvc.supabase.co/functions/v1/site-access",key="privateSitesSession";
+const COACH_UI=String.raw`(function(){
+'use strict';
+const ID='taxCoachSessionUI',q=id=>document.getElementById(id),safe=(fn,fallback='')=>{try{return fn()}catch{return fallback}};
+function focusText(){
+ const sid=q('chatSubject')?.value;
+ const sname=safe(()=>SUBJECTS.find(s=>s.id===sid)?.name,'当前科目');
+ const unit=safe(()=>guideUnit(ensureStudy().focusUnit),null);
+ const title=unit&&(!sid||unit.subject===sid)?(unit.title||unit.section||unit.chapter):'由老师根据学习状态安排';
+ return [sname,title].filter(Boolean).join(' · ');
+}
+function send(text){if(typeof sendChat==='function')sendChat(text)}
+function mount(){
+ const page=q('page-ai'),chat=page?.querySelector('.coach-chat'),tools=chat?.querySelector('.coach-tools');
+ if(!page||!chat||!tools||q(ID))return;
+ const style=document.createElement('style');style.textContent='.taxCoachBrief{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;padding:14px 15px;margin-bottom:12px;border:1px solid var(--line);border-radius:17px;background:linear-gradient(135deg,#fffdfd,#f5eef2)}.taxCoachAvatar{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;background:var(--accent);color:#fff;font-weight:900}.taxCoachBriefText{min-width:0}.taxCoachBriefText b{display:block;font-size:15px}.taxCoachBriefText small{display:block;color:var(--muted);font-size:12px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.taxCoachStart{white-space:nowrap}.taxCoachReplies{display:flex;gap:8px;flex-wrap:wrap;padding:0 0 12px}.taxCoachReplies button{border:1px solid var(--line);background:#fff;color:#665b63;border-radius:999px;padding:8px 11px;min-height:38px;font-size:12px;margin:0;width:auto}.taxCoachReplies [data-a=ok]{border-color:#cad9cf;color:#557260;background:#f5faf7}#page-ai .coach-tools>.btn{display:none}@media(max-width:720px){.taxCoachBrief{grid-template-columns:auto minmax(0,1fr)}.taxCoachStart{grid-column:1/-1;width:100%;min-height:44px}.taxCoachReplies{overflow-x:auto;flex-wrap:nowrap}.taxCoachReplies button{flex:0 0 auto}}';document.head.appendChild(style);
+ const brief=document.createElement('div');brief.id=ID;brief.className='taxCoachBrief';brief.innerHTML='<div class="taxCoachAvatar">七</div><div class="taxCoachBriefText"><b>一对一课堂</b><small data-focus></small></div><button class="btn primary taxCoachStart" type="button">▶ 开始上课</button>';tools.before(brief);
+ const replies=document.createElement('div');replies.className='taxCoachReplies';replies.innerHTML='<button type="button" data-a="simple">没听懂</button><button type="button" data-a="example">举个例子</button><button type="button" data-a="next">继续讲</button><button type="button" data-a="ok">这点懂了 ✓</button>';tools.after(replies);
+ const refresh=()=>{brief.querySelector('[data-focus]').textContent=focusText();const has=typeof state!=='undefined'&&Array.isArray(state?.coachChat)&&state.coachChat.length;brief.querySelector('.taxCoachStart').textContent=has?'▶ 继续上课':'▶ 开始上课'};
+ brief.querySelector('.taxCoachStart').onclick=()=>send('现在开始这节一对一带学。请根据我当前科目、最近学习状态和正在学的内容，主动选最合适的一小步开始讲。先讲一个小知识点，加一个很短的例子，这轮先别出题，等我回应。');
+ replies.querySelector('[data-a=simple]').onclick=()=>send('这里我没听懂。先判断我可能卡在哪个前置概念，再换一种更简单、更生活化的说法讲一次，先别出题。');
+ replies.querySelector('[data-a=example]').onclick=()=>send('给我换一个具体的小例子，把刚才这个点套进去讲清楚。不要扩展新知识，先把这一点讲透。');
+ replies.querySelector('[data-a=next]').onclick=()=>send('接着刚才继续讲，仍然一次只走一小步。如果刚才这一点已经讲完，就自然进入最相邻的下一点。');
+ replies.querySelector('[data-a=ok]').onclick=()=>send('这点我懂了。根据刚才的对话判断下一步：如果确实需要确认理解，只问我一个很小的问题；如果没必要，就直接衔接下一个最相关的小知识点。');
+ q('chatSubject')?.addEventListener('change',refresh);document.querySelectorAll('[data-page="ai"]').forEach(b=>b.addEventListener('click',()=>setTimeout(refresh,0)));refresh();
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
+})();`;
 async function request(body){const r=await fetch(endpoint,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body),signal:AbortSignal.timeout(15000)});const d=await r.json();if(!r.ok){const e=new Error(d.error||"暂时无法登录");e.status=r.status;throw e;}return d;}
 async function prepareApiConfig(token){
 const profile="tax",key="ling_tax_api_v1",endpoint="https://ibpffxzdjvgydnhmvmvc.supabase.co/functions/v1/api-settings";
@@ -15,7 +42,10 @@ async function openSite(token){
  const d=await r.json();if(!r.ok){const e=new Error(r.status===401?"登录已过期，请重新输入访问码":d.error||"题本暂时无法载入");e.status=r.status;throw e;}
  if(!d.html||!d.html.includes('玲的三税学习路线'))throw new Error("没有拿到题本内容，请重试");
  localStorage.setItem(key,token);localStorage.setItem("ling_tax_private_token_v1",token);
- await prepareApiConfig(token);document.open();document.write(d.html);document.close();
+ await prepareApiConfig(token);
+ let html=d.html;
+ if(!html.includes('taxCoachSessionUI')){const tag='<script>'+COACH_UI+'<\\/script>';html=/<\/body>/i.test(html)?html.replace(/<\/body>/i,tag+'</body>'):html+tag;}
+ document.open();document.write(html);document.close();
 }
 document.getElementById("gate").onsubmit=async e=>{e.preventDefault();const b=document.getElementById("enter"),error=document.getElementById("error");b.disabled=true;error.textContent="正在登录…";try{const d=await request({action:"login",code:document.getElementById("code").value});await openSite(d.token);}catch(e){error.textContent=e.name==="TimeoutError"?"连接超时，请再试一次":e.message;b.disabled=false;}};
 (async()=>{const token=localStorage.getItem(key);if(!token){document.getElementById("error").textContent="";return;}try{await request({action:"verify",token});await openSite(token);}catch(e){if(e.status===401)localStorage.removeItem(key);document.getElementById("error").textContent="请重新输入访问码，或检查网络后刷新。";}})();
