@@ -1,20 +1,15 @@
 /**
- * 七牌 FlClash 地区锁定 + 自动测速 · 免手动测速版 v2.2 (2026-10)
+ * 七牌 FlClash 地区锁定 + 自动测速 · 统一分流版 v2.3 (2026-10)
  * 适用：FlClash 的 JavaScript 覆写脚本（function main(config)）及 Mihomo 内核。
  * 免手动测速版：缩短自动检查周期，降低连接失败触发阈值；保持地区锁定与账号固定功能。
  *
- * 【安全边界】
- * - 自动组只在「同一个地区」的节点之间测速择优；不会自动跨国寻找备用节点。
- * - 但同地区不同节点的出口 IP 也可能不同。重要账号请选「🔒 七·账号固定节点」，
- *   再手工选定单个节点；固定节点名称也不代表运营商绝不会改变出口 IP。
- * - 不重写原订阅 DNS / 规则 / 节点；默认不自动接管原有代理选择。
- * - 「🌏 七·地区锁定」首次默认为 REJECT：请先在其中选好地区再用它接管原主组。
- * - 如想强制把 AI 网站固定到账号节点：先在 FlClash 里给「🔒 七·账号固定节点」
- *   选定单个节点，再将下方 ROUTE_AI_SITES_TO_PINNED 改为 true，保存并重载。
- * - 网站/平台风控没有“绝对不封号”的脚本保证。
- *
- * 【安装】先进阶配置 → 脚本中保存本脚本，然后去当前「配置」订阅的覆写选项
- *         关联本脚本。不要和旧版「⚡ 七牌自动测速」同时叠加使用。
+ * 【行为】
+ * - 原订阅中指向代理组/节点的规则统一交给「🌏 七·地区锁定」。
+ * - 保留 DIRECT / REJECT 等内置策略及原有 DNS、TUN 设置。
+ * - 地区组只在同地区择优；固定出口请在地区锁定里选「账号固定节点」。
+ * - 首次须手动选择地区；节点名称不能保证出口 IP 永远不变。
+ * - 原代理组仅供兼容，不再决定已统一规则的出口。
+ * 【安装】保存为 FlClash JavaScript 脚本，在订阅的覆写选项中关联并重载。
  */
 
 const QI_SETTINGS = {
@@ -23,9 +18,6 @@ const QI_SETTINGS = {
   TIMEOUT_MS: 5000,
   TOLERANCE_MS: 80,         // 延迟相差不明显时不轻易换节点；不是固定 IP
   LAZY: true,
-  // 默认不开启改动网站分流。启用前务必在固定节点组内手动选好单个节点，
-  // 因为固定节点组首次的安全默认值是 REJECT（拒绝联网）。
-  ROUTE_AI_SITES_TO_PINNED: false,
 };
 
 function main(config) {
@@ -112,44 +104,34 @@ function main(config) {
     "default-selected": "REJECT", // 首次须手动选地区，绝不擅自决定出口国家
   });
 
-  // 对接订阅当前的主代理选择组，绝不替换当前已有选项或修改其默认值。
-  // 用户到“代理”页手动点选「🌏 七·地区锁定」后才会接管该组。
-  const rules = Array.isArray(config.rules) ? config.rules : [];
-  let matchTarget = "";
-  for (let i = rules.length - 1; i >= 0; i--) {
-    const found = /^MATCH\s*,\s*([^,]+)/i.exec(String(rules[i]));
-    if (found) { matchTarget = found[1].trim(); break; }
+  // 规则的目标位于末尾；IP 规则可能附带 no-resolve。
+  // 只重定向原有代理组/节点引用，保留内置策略和未知动作。
+  const proxyTargets = new Set(originalGroups.map(g => g && g.name)
+    .concat(originalProxies.map(p => p && p.name))
+    .filter(n => typeof n === "string"));
+  [MAIN, PINNED].concat(regions.map(r => r.name)).forEach(n => proxyTargets.delete(n));
+  const builtins = new Set(["DIRECT", "REJECT", "REJECT-DROP", "PASS", "COMPATIBLE"]);
+  function routeRule(rule) {
+    if (typeof rule !== "string") return rule;
+    const parts = rule.split(",");
+    const kind = parts[0].trim().toUpperCase();
+    // SUB-RULE 的末尾是子规则名，不是出口策略。
+    if (kind === "SUB-RULE") return rule;
+    let index = parts.length - 1;
+    while (index > 0 && /^(no-resolve|src|dst)$/i.test(parts[index].trim())) index--;
+    const destination = parts[index].trim();
+    if (!builtins.has(destination) && proxyTargets.has(destination)) {
+      parts[index] = MAIN;
+      return parts.join(",");
+    }
+    return rule;
   }
-  const sourceSelects = originalGroups.filter(g => g && g.type === "select" &&
-    Array.isArray(g.proxies) && ![MAIN, PINNED].includes(g.name));
-  const entry = sourceSelects.find(g => g.name === matchTarget) ||
-    sourceSelects.find(g => /^(?:🚀\s*)?(?:节点选择|代理选择|手动选择|PROXY|Proxy|代理|全局代理|默认代理|漏网之鱼|🐟\s*漏网之鱼)$/i.test(g.name));
-  if (entry) {
-    if (!entry.proxies.includes(MAIN)) entry.proxies.push(MAIN);
-    if (!entry.proxies.includes(PINNED)) entry.proxies.push(PINNED);
-  }
-  // 仅把固定节点作为 AI 服务组中的「可手选选项」，不擅自改变原 AI 规则。
-  sourceSelects.forEach(g => {
-    if (g !== entry && /^(?:AI|AIGC|ChatGPT|OpenAI|Gemini|Claude|国外AI|人工智能|🤖\s*AI)$/i.test(g.name) &&
-        !g.proxies.includes(PINNED)) g.proxies.push(PINNED);
-  });
-
-  // 默认关闭：打开后，这些具体 AI 站点将优先走固定账号出口。
-  // 不拦截整个 google.com / googleapis.com，也不修改登录或 DNS 系统配置。
-  if (QI_SETTINGS.ROUTE_AI_SITES_TO_PINNED) {
-    const aiRules = [
-      "DOMAIN-SUFFIX,chatgpt.com," + PINNED,
-      "DOMAIN-SUFFIX,openai.com," + PINNED,
-      "DOMAIN-SUFFIX,oaistatic.com," + PINNED,
-      "DOMAIN-SUFFIX,oaiusercontent.com," + PINNED,
-      "DOMAIN-SUFFIX,claude.ai," + PINNED,
-      "DOMAIN-SUFFIX,anthropic.com," + PINNED,
-      "DOMAIN,gemini.google.com," + PINNED,
-      "DOMAIN,aistudio.google.com," + PINNED,
-      "DOMAIN,makersuite.google.com," + PINNED,
-      "DOMAIN,generativelanguage.googleapis.com," + PINNED,
-    ];
-    config.rules = aiRules.filter(r => !rules.includes(r)).concat(rules);
+  if (Array.isArray(config.rules)) config.rules = config.rules.map(routeRule);
+  if (config["sub-rules"] && typeof config["sub-rules"] === "object") {
+    Object.keys(config["sub-rules"]).forEach(key => {
+      const list = config["sub-rules"][key];
+      if (Array.isArray(list)) config["sub-rules"][key] = list.map(routeRule);
+    });
   }
 
   // 让代理页优先显示两个重要入口，再显示地区明细；原订阅分组相对顺序不变。
